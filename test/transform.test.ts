@@ -40,4 +40,16 @@ describe('instrumentVueSfc', () => {
     expect(result?.code.match(/data-picker=/g)).toHaveLength(2)
     expect(result?.records.size).toBe(1)
   })
+
+  // Vite hands over slash-separated ids while the plugin resolves native paths,
+  // so both separators reach the instrumenter. Splitting with `path.basename`
+  // only works on the host that produced the path.
+  it('derives the component name from either path separator', () => {
+    const source = '<template>\n  <main />\n</template>\n'
+    const componentOf = (file: string) => [...instrumentVueSfc(source, file)!.records.values()][0].component
+
+    expect(componentOf('C:\\project\\src\\UserCard.vue')).toBe('UserCard')
+    expect(componentOf('/home/picker/src/UserCard.vue')).toBe('UserCard')
+    expect(componentOf('UserCard.vue')).toBe('UserCard')
+  })
 })

@@ -4,9 +4,17 @@ import traverseModule from '@babel/traverse'
 import { parse as parseVueTemplate } from '@vue/compiler-dom'
 import { parse as parseVueSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
-import path from 'node:path'
 
 const traverse = (traverseModule as unknown as { default?: typeof traverseModule }).default ?? traverseModule
+
+/**
+ * Vite module ids are slash-separated while `path.resolve` returns native
+ * separators, and both reach the instrumenters below, so the component name can
+ * not come from `path.basename` (POSIX does not split on backslashes).
+ */
+function baseName(file: string): string {
+  return file.slice(Math.max(file.lastIndexOf('/'), file.lastIndexOf('\\')) + 1)
+}
 
 export interface SourceRecord {
   file: string
@@ -101,7 +109,7 @@ export function instrumentVueSfc(code: string, file: string): TransformResult | 
   const magic = new MagicString(code)
   const records = new Map<string, SourceRecord>()
   const fileHash = createHash('sha1').update(file).digest('hex').slice(0, 8)
-  const component = path.basename(file).replace(/\.vue$/i, '')
+  const component = baseName(file).replace(/\.vue$/i, '')
   const templateOffset = template.loc.start.offset
 
   function visit(node: any): void {
