@@ -60,10 +60,9 @@ describe('pi extension', () => {
     await handlers.get('session_start')!({}, ctx())
 
     expect(fs.existsSync(heartbeat())).toBe(true)
-    // mode: push is what makes the panel offer the push button at all.
+    // A fresh heartbeat is what makes the panel offer the push button at all.
     expect(JSON.parse(fs.readFileSync(heartbeat(), 'utf8'))).toMatchObject({
       agent: 'pi',
-      mode: 'push',
       pid: process.pid,
     })
     expect(typeof JSON.parse(fs.readFileSync(heartbeat(), 'utf8')).at).toBe('number')
@@ -97,5 +96,31 @@ describe('pi extension', () => {
 
     // Unchanged file: no repeat on the next prompt.
     expect(await handlers.get('before_agent_start')!({}, ctx())).toBeUndefined()
+  })
+
+  it('does not replay a push that predates the session', async () => {
+    vi.useFakeTimers()
+    try {
+      fs.mkdirSync(path.join(stateDir(), 'inbox'), { recursive: true })
+      fs.writeFileSync(path.join(stateDir(), 'inbox', 'pi.md'), '# Picker · seq 7\n\n- **src**: `a.vue:1:1`\n')
+      fs.writeFileSync(path.join(stateDir(), 'push.json'), JSON.stringify({ once: 5000, target: '' }))
+      const api = fakePi()
+      const send = vi.mocked(api.sendMessage)
+      register(api)
+
+      await handlers.get('session_start')!({}, ctx())
+      await vi.advanceTimersByTimeAsync(1000)
+      // The push file outlives the session; only a bump after this session began counts.
+      expect(send).not.toHaveBeenCalled()
+
+      fs.writeFileSync(path.join(stateDir(), 'push.json'), JSON.stringify({ once: 6000, target: '' }))
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(send).toHaveBeenCalledTimes(1)
+      expect(send.mock.calls[0][0].content).toContain('a.vue:1:1')
+
+      await handlers.get('session_shutdown')!({}, ctx())
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

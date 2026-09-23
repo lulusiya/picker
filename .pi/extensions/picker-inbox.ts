@@ -75,7 +75,7 @@ function beat(stateDirs: string[]): void {
       fs.mkdirSync(path.dirname(heartbeatFile(stateDir)), { recursive: true })
       fs.writeFileSync(
         heartbeatFile(stateDir),
-        JSON.stringify({ agent: AGENT, mode: 'push', pid: process.pid, at: Date.now() }),
+        JSON.stringify({ agent: AGENT, pid: process.pid, at: Date.now() }),
       )
     } catch {
       // A read-only or missing .picker is not worth breaking the session over.
@@ -172,7 +172,10 @@ function compose(file: string, body: string): string {
 export default function (pi: PickerExtensionApi) {
   let currentCtx: PickerContext | null = null
   let lastInjected = ''
-  let lastOnce = 0
+  // Last `once` consumed per state dir. `push.json` outlives the session, so a
+  // fresh process must start from the value already on disk instead of 0 - else
+  // the first poll replays a push nobody asked for in this session.
+  const seenPush = new Map<string, number>()
   let timer: ReturnType<typeof setInterval> | null = null
   let beatTimer: ReturnType<typeof setInterval> | null = null
   let dirCache: { root: string; dirs: string[]; at: number } | null = null
@@ -201,6 +204,11 @@ export default function (pi: PickerExtensionApi) {
     )
   }
 
+  /** Marks every existing push request as already consumed. */
+  const seedPush = (stateDirs: string[]): void => {
+    for (const stateDir of stateDirs) seenPush.set(stateDir, readPush(stateDir).once)
+  }
+
   const manualPush = (ctx: PickerContext): void => {
     showStatus(ctx)
     const candidate = latestCandidate(getStateDirs(ctx.cwd))
@@ -214,8 +222,11 @@ export default function (pi: PickerExtensionApi) {
   pi.on('session_start', async (_event, ctx) => {
     currentCtx = ctx
     showStatus(ctx)
+    const dirs = getStateDirs(ctx.cwd)
+    // A restart must not replay a push that was already handled.
+    seedPush(dirs)
     if (!beatTimer) {
-      beat(getStateDirs(ctx.cwd))
+      beat(dirs)
       beatTimer = setInterval(() => {
         if (currentCtx) beat(getStateDirs(currentCtx.cwd))
       }, HEARTBEAT_MS)
@@ -226,8 +237,9 @@ export default function (pi: PickerExtensionApi) {
       const candidate = latestCandidate(getStateDirs(currentCtx.cwd))
       if (!candidate) return
       const control = readPush(candidate.stateDir)
-      if (control.once <= lastOnce) return
-      lastOnce = control.once
+      const seen = seenPush.get(candidate.stateDir) ?? 0
+      if (control.once <= seen) return
+      seenPush.set(candidate.stateDir, control.once)
       // A push aimed at another agent is consumed but not delivered here.
       if (control.target && control.target !== AGENT) return
       deliver(currentCtx, candidate, 'Picker 推送')
