@@ -31,19 +31,19 @@ Hold `Alt`, move the mouse, and `Alt`+click an element.
 | Path | Purpose |
 |---|---|
 | `src/index.ts` | Vite plugin: transforms, client script, dev middleware |
-| `src/transform.ts` | Inject `data-pick-ai` locators into Vue SFC / JSX |
+| `src/transform.ts` | Inject `data-picker` locators into Vue SFC / JSX |
 | `src/client-code.ts` | The overlay UI injected into the page (plain JS string) |
-| `src/state.ts` | `.pick-ai` record model + push control |
+| `src/state.ts` | `.picker` record model + push control |
 | `src/bridge.ts` | Reading picks from disk (used by the MCP server) |
 | `src/mcp-server.ts` | MCP tools |
-| `src/mcp.ts` | `pick-ai-mcp` stdio entry |
-| `.pi/extensions/pick-ai-inbox.ts` | Example reader for the Pi agent |
+| `src/mcp.ts` | `picker-mcp` stdio entry |
+| `.pi/extensions/picker-inbox.ts` | Example reader for the Pi agent |
 
 ## Guidelines
 
 - Keep `src/client-code.ts` dependency-free and valid after the backtick-escape
   step (see the bottom of the file).
 - Add a test for behavioural changes; tests live in `test/`.
-- The overlay UI is themed through the `--pick-*` custom properties at the top
+- The overlay UI is themed through the `--picker-*` custom properties at the top
   of the `<style>` block in `src/client-code.ts`. Change colours there.
 - Run `npm run typecheck && npm test && npm run build` before opening a PR.

@@ -10,4 +10,4 @@ if (Test-Path $pidFile) {
 Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue |
     ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
 
-Write-Host 'PickAI demo stopped.'
+Write-Host 'Picker demo stopped.'

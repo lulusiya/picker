@@ -1,5 +1,5 @@
 {
-  "name": "vite-plugin-pick-ai",
+  "name": "vite-plugin-picker",
   "version": "0.3.0",
   "description": "Alt-click a DOM element in Vite dev mode and generate an AI-ready source prompt.",
   "type": "module",
@@ -14,7 +14,7 @@
     }
   },
   "bin": {
-    "pick-ai-mcp": "./dist/mcp.js"
+    "picker-mcp": "./dist/mcp.js"
   },
   "files": [
     "dist",
@@ -44,11 +44,11 @@
   "author": "lihuohuo",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OWNER/vite-plugin-pick-ai.git"
+    "url": "git+https://github.com/lulusiya/vite-plugin-picker.git"
   },
-  "homepage": "https://github.com/OWNER/vite-plugin-pick-ai#readme",
+  "homepage": "https://github.com/lulusiya/vite-plugin-picker#readme",
   "bugs": {
-    "url": "https://github.com/OWNER/vite-plugin-pick-ai/issues"
+    "url": "https://github.com/lulusiya/vite-plugin-picker/issues"
   },
   "engines": {
     "node": ">=18"

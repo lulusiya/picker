@@ -1,4 +1,4 @@
-# vite-plugin-pick-ai
+# vite-plugin-picker
 
 **简体中文** | [English](./README.en.md)
 
@@ -7,7 +7,7 @@
 ## 安装
 
 ```bash
-npm install -D vite-plugin-pick-ai
+npm install -D vite-plugin-picker
 ```
 
 ## 使用
@@ -16,10 +16,10 @@ npm install -D vite-plugin-pick-ai
 // vite.config.ts
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import pickAi from 'vite-plugin-pick-ai'
+import picker from 'vite-plugin-picker'
 
 export default defineConfig({
-  plugins: [pickAi(), react()],
+  plugins: [picker(), react()],
 })
 ```
 
@@ -29,27 +29,27 @@ Vue 3 项目：
 // vite.config.ts
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import pickAi from 'vite-plugin-pick-ai'
+import picker from 'vite-plugin-picker'
 
 export default defineConfig({
-  plugins: [pickAi(), vue()],
+  plugins: [picker(), vue()],
 })
 ```
 
 插件仅在 Vite dev server 中运行，不会进入生产构建。默认支持 Vue 3 `.vue` SFC、`.jsx` 和 `.tsx`。选中元素后可在面板点“编辑器”，编辑器由 Vite 内置的 `/__open-in-editor` 自动识别（依次读取 `LAUNCH_EDITOR`、`VISUAL`、`EDITOR`，否则扫描正在运行的编辑器进程）。
 
 ```ts
-pickAi({
+picker({
   openInEditor: false, // 隐藏“打开编辑器”按钮；默认 true
   include: /\.(?:vue|[jt]sx)$/,
-  stateDir: '.pick-ai', // 落盘目录；false 关闭；默认 '.pick-ai'
+  stateDir: '.picker', // 落盘目录；false 关闭；默认 '.picker'
   targets: ['pi', 'codex'], // “发送给”面板选项；默认 []（仅广播）
 })
 ```
 
 ## 操作
 
-1. 启动 Vite 开发服务器；页面右下角出现绿色的“Pick AI 已启用”徽标即表示插件运行成功。
+1. 启动 Vite 开发服务器；页面右下角出现绿色的“Picker 已启用”徽标即表示插件运行成功。
 2. 按住 `Alt` 并移动鼠标选择元素。
 3. 保持 `Alt` 按下并点击元素。
 4. 在元素右下方的小卡片中填写修改要求，点击“复制”把 Prompt 与带行列号的 `src`、表示组件层级关系的 `range` 写入剪贴板。
@@ -59,14 +59,14 @@ pickAi({
 
 ## 交给 AI（文件桥）
 
-除了复制到剪贴板，插件还会把选中的元素写到你项目根目录下的 `.pick-ai/`（可用 `stateDir` 改）：
+除了复制到剪贴板，插件还会把选中的元素写到你项目根目录下的 `.picker/`（可用 `stateDir` 改）：
 
-- `.pick-ai/picks.jsonl` — 追加式日志，每行一个 JSON，包含递增 `seq`、`file`/`line`/`column`、组件层级 `chain`、元素 `range`、`targets`，以及填写了修改要求时的 `instruction` 与组好的 `prompt`。
-- `.pick-ai/last-pick.md` — **广播（选“全部”）** 时更新的可读快照。
-- `.pick-ai/inbox/<agent>.md` — 指定目标时更新的可读快照。
-- `.pick-ai/push.json` — 最近一次的推送请求（`once` 时间戳、`target` 目标）。
+- `.picker/picks.jsonl` — 追加式日志，每行一个 JSON，包含递增 `seq`、`file`/`line`/`column`、组件层级 `chain`、元素 `range`、`targets`，以及填写了修改要求时的 `instruction` 与组好的 `prompt`。
+- `.picker/last-pick.md` — **广播（选“全部”）** 时更新的可读快照。
+- `.picker/inbox/<agent>.md` — 指定目标时更新的可读快照。
+- `.picker/push.json` — 最近一次的推送请求（`once` 时间戳、`target` 目标）。
 
-绝对路径只在本地 Vite 服务内按短 ID 解析，浏览器不会拿到完整路径。建议把 `.pick-ai/` 加入 `.gitignore`（本仓库已忽略）。
+绝对路径只在本地 Vite 服务内按短 ID 解析，浏览器不会拿到完整路径。建议把 `.picker/` 加入 `.gitignore`（本仓库已忽略）。
 
 > ⚠️ 写文件只是“放在那里”，**不会自动进入任何对话**。必须有一个读取方去拉。
 
@@ -76,36 +76,36 @@ pickAi({
 
 **1. 手动（零配置，任何 agent 都行）**——在对话里直接说：
 
-> 读一下 `.pick-ai/inbox/pi.md`（或 `.pick-ai/last-pick.md`），按里面的修改要求改代码。
+> 读一下 `.picker/inbox/pi.md`（或 `.picker/last-pick.md`），按里面的修改要求改代码。
 
-**2. 自动注入（推荐）**——给 agent 装一个钩子，在提交提示时自动读入。本仓库为 Pi 内置了一个扩展：`.pi/extensions/pick-ai-inbox.ts`。它监听 `before_agent_start`，自动把最新一条收件箱/广播快照注入对话；文件没变就不重复注入。装好后用 `/reload`（或重启 Pi）加载。
+**2. 自动注入（推荐）**——给 agent 装一个钩子，在提交提示时自动读入。本仓库为 Pi 内置了一个扩展：`.pi/extensions/picker-inbox.ts`。它监听 `before_agent_start`，自动把最新一条收件箱/广播快照注入对话；文件没变就不重复注入。装好后用 `/reload`（或重启 Pi）加载。
 
 它支持两种投递方式：
 
 | 方式 | 触发 | 行为 |
 |---|---|---|
 | 拉取 | 你给 Pi 发消息 | 注入最新一条（默认） |
-| 推送 | 浏览器点“推送” / 按 `Enter`，或 Pi 按 `ctrl+alt+p` / 输入 `/pick-ai` | 立即注入当前选取 |
+| 推送 | 浏览器点“推送” / 按 `Enter`，或 Pi 按 `ctrl+alt+p` / 输入 `/picker` | 立即注入当前选取 |
 
-其他 agent 同理，例如 Claude Code 用 `UserPromptSubmit` hook、Codex 用 `AGENTS.md` 指示它在动手前先读 `.pick-ai/inbox/codex.md`；或者直接用下面的 MCP。
+其他 agent 同理，例如 Claude Code 用 `UserPromptSubmit` hook、Codex 用 `AGENTS.md` 指示它在动手前先读 `.picker/inbox/codex.md`；或者直接用下面的 MCP。
 
 ## 多 agent 路由
 
 浏览器和终端之间没有关联，插件无法自动判断该发给哪个 agent。做法是**显式指定目标**：配置 `targets` 后，选取面板会出现“发送给”选择器，选中某个 agent，这次选取就会额外写入该 agent 的收件箱文件。
 
 ```ts
-pickAi({ targets: ['pi', 'codex'] }) // 面板出现 [全部] [pi] [codex]
+picker({ targets: ['pi', 'codex'] }) // 面板出现 [全部] [pi] [codex]
 ```
 
-- 选“全部”（默认）→ 只写 `.pick-ai/last-pick.md`。
-- 选某个 agent → 只写 `.pick-ai/inbox/<name>.md`（不会污染广播快照）。
+- 选“全部”（默认）→ 只写 `.picker/last-pick.md`。
+- 选某个 agent → 只写 `.picker/inbox/<name>.md`（不会污染广播快照）。
 
 每个 agent 在自己的提示词里约定读取自己的收件箱，例如：
 
-> 你是 codex。需要时读 `.pick-ai/inbox/codex.md`，按里面的修改要求改代码。
+> 你是 codex。需要时读 `.picker/inbox/codex.md`，按里面的修改要求改代码。
 
 ```
-.pick-ai/
+.picker/
 ├─ picks.jsonl        # 全量日志（每条含 targets 字段）
 ├─ last-pick.md       # 广播（选“全部”）
 ├─ push.json          # 推送请求（once / target）
@@ -129,9 +129,9 @@ npm i -D @modelcontextprotocol/sdk zod
 ```json
 {
   "mcpServers": {
-    "pick-ai": {
+    "picker": {
       "command": "npx",
-      "args": ["pick-ai-mcp", "--agent", "codex"]
+      "args": ["picker-mcp", "--agent", "codex"]
     }
   }
 }
@@ -143,7 +143,7 @@ npm i -D @modelcontextprotocol/sdk zod
 - `get_last_pick` — 最近一次选取
 - `list_picks({ limit })` — 最近的选取列表
 
-`--agent <name>`（或 `PICK_AI_AGENT`）决定接收哪些定向选取，广播始终接收；`--root <dir>`（或 `PICK_AI_ROOT`）指定项目根，默认 `process.cwd()`。`@modelcontextprotocol/sdk` 与 `zod` 是可选 peer 依赖，不用 MCP 就不必安装。
+`--agent <name>`（或 `PICKER_AGENT`）决定接收哪些定向选取，广播始终接收；`--root <dir>`（或 `PICKER_ROOT`）指定项目根，默认 `process.cwd()`。`@modelcontextprotocol/sdk` 与 `zod` 是可选 peer 依赖，不用 MCP 就不必安装。
 
 ## 当前范围
 
@@ -158,7 +158,7 @@ iframe 和 closed Shadow DOM 暂未支持。Vue 动态组件自身不会被注�
 
 浏览器 DOM 只包含短定位 ID，绝对路径只在本地 Vite 服务内按 ID 查询。打开编辑器复用 Vite 内置的 `/__open-in-editor` 端点，仅限本地开发服务器使用。
 
-`/__pick-ai/*` 端点没有鉴权，请把 dev server 绑定在 localhost；详见 [SECURITY.md](./SECURITY.md)。
+`/__picker/*` 端点没有鉴权，请把 dev server 绑定在 localhost；详见 [SECURITY.md](./SECURITY.md)。
 
 ## License
 

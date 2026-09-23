@@ -19,18 +19,18 @@ First public release.
 - Stash tray with multi-select, in-place editing and batch copy/delete.
 - Open the picked source in the editor through Vite's `/__open-in-editor`,
   so the editor is auto-detected.
-- File bridge under `.pick-ai/`: `picks.jsonl`, `last-pick.md`,
+- File bridge under `.picker/`: `picks.jsonl`, `last-pick.md`,
   `inbox/<agent>.md` and `push.json`.
 - Multi-agent routing via the `targets` option, with per-agent inbox files.
-- Push a pick to an agent session: browser button / `Enter`, the `pick-ai-mcp`
+- Push a pick to an agent session: browser button / `Enter`, the `picker-mcp`
   tools, or the bundled Pi extension.
-- MCP server (`pick-ai-mcp`) exposing `get_new_picks`, `get_last_pick` and
+- MCP server (`picker-mcp`) exposing `get_new_picks`, `get_last_pick` and
   `list_picks`.
-- Pi extension example at `.pi/extensions/pick-ai-inbox.ts`.
+- Pi extension example at `.pi/extensions/picker-inbox.ts`.
 
 ### Changed
 
-- The overlay UI is themed through `--pick-*` CSS custom properties and uses a
+- The overlay UI is themed through `--picker-*` CSS custom properties and uses a
   blue accent.
 - The old `editor` option is replaced by `openInEditor`; editor detection is
   delegated to Vite.
@@ -40,5 +40,5 @@ First public release.
 - Stale source records are evicted on hot update, so edited files no longer
   resolve to shifted line numbers.
 
-[Unreleased]: https://github.com/OWNER/vite-plugin-pick-ai/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/OWNER/vite-plugin-pick-ai/releases/tag/v0.3.0
+[Unreleased]: https://github.com/lulusiya/vite-plugin-picker/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/lulusiya/vite-plugin-picker/releases/tag/v0.3.0

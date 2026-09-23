@@ -42,7 +42,7 @@ describe('renderLastPick', () => {
     const md = renderLastPick(
       buildPickEntry(record, { kind: 'prompt', instruction: 'make it blue', chain: 'App > Card' }, 'abc:12:3', 7, 0),
     )
-    expect(md).toContain('# Pick AI · seq 7')
+    expect(md).toContain('# Picker · seq 7')
     expect(md).toContain('`C:\\project\\src\\App.vue:12:3`')
     expect(md).toContain('- **range**: App > Card')
     expect(md).toContain('make it blue')

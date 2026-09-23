@@ -8,7 +8,7 @@ describe('client runtime', () => {
   })
 
   it('renders a persistent ready indicator with a stash button on its left', () => {
-    expect(clientCode).toContain('Pick AI 已启用')
+    expect(clientCode).toContain('Picker 已启用')
     expect(clientCode).toContain('status-dot')
     expect(clientCode).toContain('按住 Alt 并点击页面元素')
     expect(clientCode).toContain('class="dock"')
@@ -105,7 +105,7 @@ describe('client runtime', () => {
 
   it('pushes the current pick on demand and on Enter', () => {
     expect(clientCode).toContain('class="action secondary push-once"')
-    expect(clientCode).toContain('/__pick-ai/push')
+    expect(clientCode).toContain('/__picker/push')
     expect(clientCode).not.toContain('push-toggle')
     expect(clientCode).not.toContain('实时推送')
     expect(clientCode).toContain("await record('prompt', textarea.value)")
@@ -114,8 +114,8 @@ describe('client runtime', () => {
   })
 
   it('themes the overlay through CSS variables with a blue accent', () => {
-    expect(clientCode).toContain('--pick-accent: #2563eb')
-    expect(clientCode).toContain('border:2px solid var(--pick-accent)')
+    expect(clientCode).toContain('--picker-accent: #2563eb')
+    expect(clientCode).toContain('border:2px solid var(--picker-accent)')
     expect(clientCode).not.toContain('#7c3aed')
     expect(clientCode).not.toContain('#8b5cf6')
     expect(clientCode).not.toContain('#6d28d9')

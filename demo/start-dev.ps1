@@ -14,5 +14,5 @@ $p = Start-Process node -ArgumentList @("$demo\node_modules\vite\bin\vite.js", '
     -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
 
 $p.Id | Out-File $pidFile
-Write-Host "PickAI demo started in background (PID $($p.Id)) -> http://localhost:5173"
+Write-Host "Picker demo started in background (PID $($p.Id)) -> http://localhost:5173"
 Write-Host "Logs: $out"

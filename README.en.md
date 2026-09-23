@@ -1,4 +1,4 @@
-# vite-plugin-pick-ai
+# vite-plugin-picker
 
 **English** | [简体中文](./README.md)
 
@@ -10,7 +10,7 @@ a prompt you can hand straight to an AI agent.
 ## Install
 
 ```bash
-npm install -D vite-plugin-pick-ai
+npm install -D vite-plugin-picker
 ```
 
 ## Usage
@@ -19,10 +19,10 @@ npm install -D vite-plugin-pick-ai
 // vite.config.ts
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import pickAi from 'vite-plugin-pick-ai'
+import picker from 'vite-plugin-picker'
 
 export default defineConfig({
-  plugins: [pickAi(), react()],
+  plugins: [picker(), react()],
 })
 ```
 
@@ -32,10 +32,10 @@ For Vue 3:
 // vite.config.ts
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import pickAi from 'vite-plugin-pick-ai'
+import picker from 'vite-plugin-picker'
 
 export default defineConfig({
-  plugins: [pickAi(), vue()],
+  plugins: [picker(), vue()],
 })
 ```
 
@@ -46,17 +46,17 @@ auto-detected by Vite's built-in `/__open-in-editor` (it reads `LAUNCH_EDITOR`,
 `VISUAL` then `EDITOR`, and otherwise scans running editor processes).
 
 ```ts
-pickAi({
+picker({
   openInEditor: false, // hide the "Editor" button; default true
   include: /\.(?:vue|[jt]sx)$/,
-  stateDir: '.pick-ai', // where picks are written; false disables; default '.pick-ai'
+  stateDir: '.picker', // where picks are written; false disables; default '.picker'
   targets: ['pi', 'codex'], // options in the "Send to" row; default [] (broadcast only)
 })
 ```
 
 ## How it works
 
-1. Start the Vite dev server. A green "Pick AI enabled" badge in the bottom-right
+1. Start the Vite dev server. A green "Picker enabled" badge in the bottom-right
    corner means the plugin is running.
 2. Hold `Alt` and move the mouse to highlight elements.
 3. Keep `Alt` held and click an element.
@@ -72,18 +72,18 @@ pickAi({
 
 ## Handing it to an AI (file bridge)
 
-Besides the clipboard, the plugin writes the picked element into `.pick-ai/` at
+Besides the clipboard, the plugin writes the picked element into `.picker/` at
 your project root (configurable with `stateDir`):
 
-- `.pick-ai/picks.jsonl` — append-only log, one JSON per line, with an incrementing
+- `.picker/picks.jsonl` — append-only log, one JSON per line, with an incrementing
   `seq`, `file`/`line`/`column`, component `chain`, the element `range`, `targets`,
   and (when an instruction was written) `instruction` and the composed `prompt`.
-- `.pick-ai/last-pick.md` — the readable snapshot updated for **broadcast** picks.
-- `.pick-ai/inbox/<agent>.md` — the readable snapshot updated for targeted picks.
-- `.pick-ai/push.json` — the latest push request (`once` timestamp, `target`).
+- `.picker/last-pick.md` — the readable snapshot updated for **broadcast** picks.
+- `.picker/inbox/<agent>.md` — the readable snapshot updated for targeted picks.
+- `.picker/push.json` — the latest push request (`once` timestamp, `target`).
 
 Absolute paths are only resolved on the local Vite server by short id; the browser
-never receives the full path. Add `.pick-ai/` to your `.gitignore` (already done in
+never receives the full path. Add `.picker/` to your `.gitignore` (already done in
 this repo).
 
 > ⚠️ Writing a file does nothing on its own — **it does not enter any chat**. A
@@ -95,10 +95,10 @@ The file bridge is passive, so the agent side has to read it. There are two ways
 
 **1. Manual (zero setup, any agent)** — just say in the chat:
 
-> Read `.pick-ai/inbox/pi.md` (or `.pick-ai/last-pick.md`) and make the change it asks for.
+> Read `.picker/inbox/pi.md` (or `.picker/last-pick.md`) and make the change it asks for.
 
 **2. Automatic injection (recommended)** — install a hook that reads it when you
-submit a prompt. This repo ships one for Pi: `.pi/extensions/pick-ai-inbox.ts`. It
+submit a prompt. This repo ships one for Pi: `.pi/extensions/picker-inbox.ts`. It
 listens to `before_agent_start` and injects the newest inbox/broadcast snapshot,
 without repeating while the file is unchanged. Run `/reload` (or restart Pi) to
 load it.
@@ -108,10 +108,10 @@ It supports two delivery modes:
 | Mode | Trigger | Behaviour |
 |---|---|---|
 | Pull | You send Pi a message | Inject the newest pick (default) |
-| Push | Browser **Push** / `Enter`, or Pi `ctrl+alt+p` / `/pick-ai` | Inject the current pick immediately |
+| Push | Browser **Push** / `Enter`, or Pi `ctrl+alt+p` / `/picker` | Inject the current pick immediately |
 
 Other agents work the same way — for example Claude Code via a `UserPromptSubmit`
-hook, or Codex via `AGENTS.md` telling it to read `.pick-ai/inbox/codex.md` before
+hook, or Codex via `AGENTS.md` telling it to read `.picker/inbox/codex.md` before
 starting. Or just use the MCP server below.
 
 ## Multi-agent routing
@@ -122,19 +122,19 @@ guess which agent a pick is for. Instead you pick the target explicitly: once
 to that agent's inbox.
 
 ```ts
-pickAi({ targets: ['pi', 'codex'] }) // panel shows an "All" option plus [pi] [codex]
+picker({ targets: ['pi', 'codex'] }) // panel shows an "All" option plus [pi] [codex]
 ```
 
-- "All" (default) → writes only `.pick-ai/last-pick.md`.
-- An agent → writes only `.pick-ai/inbox/<name>.md` (it never pollutes the
+- "All" (default) → writes only `.picker/last-pick.md`.
+- An agent → writes only `.picker/inbox/<name>.md` (it never pollutes the
   broadcast snapshot).
 
 Each agent is told to read its own inbox, for example:
 
-> You are codex. When needed, read `.pick-ai/inbox/codex.md` and make the change it asks for.
+> You are codex. When needed, read `.picker/inbox/codex.md` and make the change it asks for.
 
 ```
-.pick-ai/
+.picker/
 ├─ picks.jsonl        # full log (each line has targets)
 ├─ last-pick.md       # broadcast ("All")
 ├─ push.json          # push request (once / target)
@@ -162,9 +162,9 @@ Add this to your client's MCP config:
 ```json
 {
   "mcpServers": {
-    "pick-ai": {
+    "picker": {
       "command": "npx",
-      "args": ["pick-ai-mcp", "--agent", "codex"]
+      "args": ["picker-mcp", "--agent", "codex"]
     }
   }
 }
@@ -176,8 +176,8 @@ Tools:
 - `get_last_pick` — the most recent pick
 - `list_picks({ limit })` — recent picks
 
-`--agent <name>` (or `PICK_AI_AGENT`) selects which targeted picks to receive;
-broadcasts are always received. `--root <dir>` (or `PICK_AI_ROOT`) sets the project
+`--agent <name>` (or `PICKER_AGENT`) selects which targeted picks to receive;
+broadcasts are always received. `--root <dir>` (or `PICKER_ROOT`) sets the project
 root, defaulting to `process.cwd()`. `@modelcontextprotocol/sdk` and `zod` are
 optional peer dependencies — install them only if you use MCP.
 
@@ -201,7 +201,7 @@ The browser DOM only contains short locator ids, and absolute paths are resolved
 on the local Vite server by id. Opening the editor reuses Vite's built-in
 `/__open-in-editor` endpoint, which is meant for the local dev server only.
 
-The `/__pick-ai/*` endpoints are unauthenticated. Keep the dev server bound to
+The `/__picker/*` endpoints are unauthenticated. Keep the dev server bound to
 localhost; see [SECURITY.md](./SECURITY.md) for details.
 
 ## License

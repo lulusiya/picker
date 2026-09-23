@@ -2,7 +2,7 @@ node_modules
 dist
 coverage
 *.tgz
-.pick-ai/
+.picker/
 
 # dev server artifacts
 *.log

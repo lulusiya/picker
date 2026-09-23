@@ -1,120 +1,120 @@
 const rawClientCode = String.raw`
-const PICK_ATTRIBUTE = 'data-pick-ai'
+const PICK_ATTRIBUTE = 'data-picker'
 const HIGHLIGHT_GAP = 5
 const state = { alt: false, selected: null, hovered: null, context: null, stash: [], stashOpen: false, target: '' }
 let stashSeq = 0
 const selectedStash = new Set()
-const runtimeConfig = globalThis.__PICK_AI_CONFIG__ || {}
+const runtimeConfig = globalThis.__PICKER_CONFIG__ || {}
 
 const host = document.createElement('div')
-host.setAttribute('data-pick-ai-ui', '')
+host.setAttribute('data-picker-ui', '')
 const root = host.attachShadow({ mode: 'open' })
 root.innerHTML = \`
   <style>
     :host { all: initial }
     :host {
-      --pick-accent: #2563eb;
-      --pick-accent-hover: #1d4ed8;
-      --pick-accent-soft: #3b82f6;
-      --pick-accent-border: #93c5fd;
-      --pick-accent-tint: #eff6ff;
-      --pick-accent-ring: rgb(37 99 235 / 25%);
-      --pick-accent-ring-soft: rgb(37 99 235 / 12%);
-      --pick-accent-focus: rgb(59 130 246 / 14%);
-      --pick-on-accent: #fff;
-      --pick-ink: #18181b;
-      --pick-ink-strong: #27272a;
-      --pick-ink-soft: #3f3f46;
-      --pick-ink-route: #52525b;
-      --pick-muted: #8b8b95;
-      --pick-muted-strong: #a1a1aa;
-      --pick-muted-soft: #a6a6b0;
-      --pick-muted-faint: #b6b6c0;
-      --pick-placeholder: #c9c9d2;
-      --pick-surface: #fff;
-      --pick-surface-1: rgb(255 255 255 / 94%);
-      --pick-surface-2: rgb(255 255 255 / 97%);
-      --pick-fill: #f4f4f5;
-      --pick-fill-hover: #e4e4e7;
-      --pick-fill-soft: #fafafc;
-      --pick-rule: #e4e4e7;
-      --pick-rule-strong: #d4d4d8;
-      --pick-rule-faint: #f1f1f3;
-      --pick-success: #22c55e;
-      --pick-success-bg: #f0fdf4;
-      --pick-success-border: #bbf7d0;
-      --pick-success-ink: #166534;
-      --pick-success-ring: rgb(34 197 94 / 16%);
-      --pick-danger: #dc2626;
-      --pick-danger-bg: #fef2f2;
-      --pick-danger-bg-hover: #fee2e2;
-      --pick-danger-border: #fecaca;
-      --pick-shadow-sm: 0 5px 18px rgb(0 0 0 / 14%);
-      --pick-shadow-md: 0 8px 24px rgb(0 0 0 / 16%);
-      --pick-shadow-lg: 0 24px 60px rgb(0 0 0 / 22%),0 4px 10px rgb(0 0 0 / 7%);
+      --picker-accent: #2563eb;
+      --picker-accent-hover: #1d4ed8;
+      --picker-accent-soft: #3b82f6;
+      --picker-accent-border: #93c5fd;
+      --picker-accent-tint: #eff6ff;
+      --picker-accent-ring: rgb(37 99 235 / 25%);
+      --picker-accent-ring-soft: rgb(37 99 235 / 12%);
+      --picker-accent-focus: rgb(59 130 246 / 14%);
+      --picker-on-accent: #fff;
+      --picker-ink: #18181b;
+      --picker-ink-strong: #27272a;
+      --picker-ink-soft: #3f3f46;
+      --picker-ink-route: #52525b;
+      --picker-muted: #8b8b95;
+      --picker-muted-strong: #a1a1aa;
+      --picker-muted-soft: #a6a6b0;
+      --picker-muted-faint: #b6b6c0;
+      --picker-placeholder: #c9c9d2;
+      --picker-surface: #fff;
+      --picker-surface-1: rgb(255 255 255 / 94%);
+      --picker-surface-2: rgb(255 255 255 / 97%);
+      --picker-fill: #f4f4f5;
+      --picker-fill-hover: #e4e4e7;
+      --picker-fill-soft: #fafafc;
+      --picker-rule: #e4e4e7;
+      --picker-rule-strong: #d4d4d8;
+      --picker-rule-faint: #f1f1f3;
+      --picker-success: #22c55e;
+      --picker-success-bg: #f0fdf4;
+      --picker-success-border: #bbf7d0;
+      --picker-success-ink: #166534;
+      --picker-success-ring: rgb(34 197 94 / 16%);
+      --picker-danger: #dc2626;
+      --picker-danger-bg: #fef2f2;
+      --picker-danger-bg-hover: #fee2e2;
+      --picker-danger-border: #fecaca;
+      --picker-shadow-sm: 0 5px 18px rgb(0 0 0 / 14%);
+      --picker-shadow-md: 0 8px 24px rgb(0 0 0 / 16%);
+      --picker-shadow-lg: 0 24px 60px rgb(0 0 0 / 22%),0 4px 10px rgb(0 0 0 / 7%);
     }
-    .box { display:none; position:fixed; pointer-events:none; z-index:2147483646; box-sizing:border-box; border:2px solid var(--pick-accent); border-radius:7px; box-shadow:0 0 0 1px var(--pick-accent-ring) }
-    .tag { position:absolute; top:-27px; left:-2px; padding:3px 8px; border-radius:5px 5px 0 0; background:var(--pick-accent); color:var(--pick-on-accent); font:12px/18px ui-monospace,monospace; white-space:nowrap }
+    .box { display:none; position:fixed; pointer-events:none; z-index:2147483646; box-sizing:border-box; border:2px solid var(--picker-accent); border-radius:7px; box-shadow:0 0 0 1px var(--picker-accent-ring) }
+    .tag { position:absolute; top:-27px; left:-2px; padding:3px 8px; border-radius:5px 5px 0 0; background:var(--picker-accent); color:var(--picker-on-accent); font:12px/18px ui-monospace,monospace; white-space:nowrap }
     .dock { position:fixed; z-index:2147483645; right:14px; bottom:14px; display:flex; align-items:center; gap:8px }
-    .stash-btn { display:flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--pick-rule-strong); border-radius:999px; background:var(--pick-surface-1); color:var(--pick-ink-soft); cursor:pointer; box-shadow:var(--pick-shadow-sm); font:600 12px/1 system-ui,sans-serif; user-select:none; backdrop-filter:blur(8px) }
-    .stash-btn:hover { border-color:var(--pick-accent-border); background:var(--pick-surface) }
-    .stash-count { min-width:16px; padding:1px 5px; border-radius:999px; background:var(--pick-accent); color:var(--pick-on-accent); font:700 10px/1.5 system-ui,sans-serif; text-align:center }
-    .status { display:flex; align-items:center; gap:7px; padding:7px 10px; border:1px solid var(--pick-rule-strong); border-radius:999px; background:var(--pick-surface-1); color:var(--pick-ink-soft); box-shadow:var(--pick-shadow-sm); font:600 12px/1 system-ui,sans-serif; user-select:none; backdrop-filter:blur(8px); cursor:default }
-    .status-dot { width:8px; height:8px; border-radius:50%; background:var(--pick-success); box-shadow:0 0 0 3px var(--pick-success-ring) }
-    .toast { display:none; position:fixed; z-index:2147483647; left:50%; bottom:18px; transform:translateX(-50%); padding:9px 12px; border:1px solid var(--pick-success-border); border-radius:8px; background:var(--pick-success-bg); color:var(--pick-success-ink); box-shadow:var(--pick-shadow-md); font:600 13px/1.4 system-ui,sans-serif; pointer-events:none; white-space:nowrap }
-    .panel, .stash-panel { display:none; position:fixed; z-index:2147483647; width:min(376px,calc(100vw - 24px)); box-sizing:border-box; padding:18px 17px 15px; border:1px solid var(--pick-rule); border-radius:16px; background:var(--pick-surface-2); color:var(--pick-ink); box-shadow:var(--pick-shadow-lg); font:13px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif; backdrop-filter:blur(12px) }
+    .stash-btn { display:flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--picker-rule-strong); border-radius:999px; background:var(--picker-surface-1); color:var(--picker-ink-soft); cursor:pointer; box-shadow:var(--picker-shadow-sm); font:600 12px/1 system-ui,sans-serif; user-select:none; backdrop-filter:blur(8px) }
+    .stash-btn:hover { border-color:var(--picker-accent-border); background:var(--picker-surface) }
+    .stash-count { min-width:16px; padding:1px 5px; border-radius:999px; background:var(--picker-accent); color:var(--picker-on-accent); font:700 10px/1.5 system-ui,sans-serif; text-align:center }
+    .status { display:flex; align-items:center; gap:7px; padding:7px 10px; border:1px solid var(--picker-rule-strong); border-radius:999px; background:var(--picker-surface-1); color:var(--picker-ink-soft); box-shadow:var(--picker-shadow-sm); font:600 12px/1 system-ui,sans-serif; user-select:none; backdrop-filter:blur(8px); cursor:default }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:var(--picker-success); box-shadow:0 0 0 3px var(--picker-success-ring) }
+    .toast { display:none; position:fixed; z-index:2147483647; left:50%; bottom:18px; transform:translateX(-50%); padding:9px 12px; border:1px solid var(--picker-success-border); border-radius:8px; background:var(--picker-success-bg); color:var(--picker-success-ink); box-shadow:var(--picker-shadow-md); font:600 13px/1.4 system-ui,sans-serif; pointer-events:none; white-space:nowrap }
+    .panel, .stash-panel { display:none; position:fixed; z-index:2147483647; width:min(376px,calc(100vw - 24px)); box-sizing:border-box; padding:18px 17px 15px; border:1px solid var(--picker-rule); border-radius:16px; background:var(--picker-surface-2); color:var(--picker-ink); box-shadow:var(--picker-shadow-lg); font:13px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif; backdrop-filter:blur(12px) }
     .header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:13px }
     .title { font-size:14px; font-weight:750; letter-spacing:.1px }
     .stash-panel .title { display:flex; align-items:center; gap:8px }
-    .stash-panel .title::before { content:''; width:9px; height:9px; border-radius:50%; background:linear-gradient(135deg,var(--pick-accent-soft),var(--pick-accent-hover)); box-shadow:0 0 0 3px var(--pick-accent-ring-soft) }
-    .close { width:30px; height:30px; margin:-4px -4px 0 0; display:grid; place-items:center; border:0; border-radius:9px; background:transparent; color:var(--pick-muted-strong); cursor:pointer; font:21px/1 system-ui,sans-serif }
-    .close:hover { background:var(--pick-fill); color:var(--pick-ink-soft) }
+    .stash-panel .title::before { content:''; width:9px; height:9px; border-radius:50%; background:linear-gradient(135deg,var(--picker-accent-soft),var(--picker-accent-hover)); box-shadow:0 0 0 3px var(--picker-accent-ring-soft) }
+    .close { width:30px; height:30px; margin:-4px -4px 0 0; display:grid; place-items:center; border:0; border-radius:9px; background:transparent; color:var(--picker-muted-strong); cursor:pointer; font:21px/1 system-ui,sans-serif }
+    .close:hover { background:var(--picker-fill); color:var(--picker-ink-soft) }
     .panel-target { flex:1; min-width:0; display:grid; gap:2px }
-    .target-range { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--pick-ink-strong); font:600 13px/1.4 system-ui,sans-serif }
-    .target-src { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--pick-muted); font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,'Courier New',monospace }
+    .target-range { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--picker-ink-strong); font:600 13px/1.4 system-ui,sans-serif }
+    .target-src { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--picker-muted); font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,'Courier New',monospace }
     .routing { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:11px }
-    .routing-label { color:var(--pick-muted); font:11px/1.4 system-ui,sans-serif }
-    .route { padding:4px 10px; border:1px solid var(--pick-rule-strong); border-radius:999px; background:var(--pick-surface); color:var(--pick-ink-route); cursor:pointer; font:600 11px/1 system-ui,sans-serif }
-    .route:hover { border-color:var(--pick-accent-border); color:var(--pick-accent-hover) }
-    .route.active { border-color:var(--pick-accent); background:var(--pick-accent); color:var(--pick-on-accent) }
-    textarea { width:100%; min-height:100px; max-height:200px; box-sizing:border-box; resize:vertical; padding:10px; border:1px solid var(--pick-rule-strong); border-radius:10px; outline:none; font:13px/1.55 system-ui,sans-serif; color:var(--pick-ink-strong) }
-    textarea:focus { border-color:var(--pick-accent-soft); box-shadow:0 0 0 3px var(--pick-accent-focus) }
+    .routing-label { color:var(--picker-muted); font:11px/1.4 system-ui,sans-serif }
+    .route { padding:4px 10px; border:1px solid var(--picker-rule-strong); border-radius:999px; background:var(--picker-surface); color:var(--picker-ink-route); cursor:pointer; font:600 11px/1 system-ui,sans-serif }
+    .route:hover { border-color:var(--picker-accent-border); color:var(--picker-accent-hover) }
+    .route.active { border-color:var(--picker-accent); background:var(--picker-accent); color:var(--picker-on-accent) }
+    textarea { width:100%; min-height:100px; max-height:200px; box-sizing:border-box; resize:vertical; padding:10px; border:1px solid var(--picker-rule-strong); border-radius:10px; outline:none; font:13px/1.55 system-ui,sans-serif; color:var(--picker-ink-strong) }
+    textarea:focus { border-color:var(--picker-accent-soft); box-shadow:0 0 0 3px var(--picker-accent-focus) }
     .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:13px }
-    button.action { flex:1; padding:9px 12px; border:0; border-radius:9px; cursor:pointer; background:var(--pick-accent); color:var(--pick-on-accent); font:600 13px/1 system-ui,sans-serif }
-    button.action:hover { background:var(--pick-accent-hover) }
-    button.secondary { background:var(--pick-fill); color:var(--pick-ink-strong) }
-    button.secondary:hover { background:var(--pick-fill-hover) }
+    button.action { flex:1; padding:9px 12px; border:0; border-radius:9px; cursor:pointer; background:var(--picker-accent); color:var(--picker-on-accent); font:600 13px/1 system-ui,sans-serif }
+    button.action:hover { background:var(--picker-accent-hover) }
+    button.secondary { background:var(--picker-fill); color:var(--picker-ink-strong) }
+    button.secondary:hover { background:var(--picker-fill-hover) }
     button.action:disabled { cursor:not-allowed; opacity:.5 }
     .stash-panel { width:min(440px,calc(100vw - 24px)) }
-    .stash-empty { margin:8px 0; color:var(--pick-muted-strong); font-size:12px; text-align:center }
+    .stash-empty { margin:8px 0; color:var(--picker-muted-strong); font-size:12px; text-align:center }
     .stash-list { display:block; max-height:min(60vh,440px); margin:0; padding:0 6px; overflow:auto; list-style:none }
-    .stash-row { display:flex; align-items:center; gap:12px; padding:11px 10px; border-bottom:1px solid var(--pick-rule-faint) }
+    .stash-row { display:flex; align-items:center; gap:12px; padding:11px 10px; border-bottom:1px solid var(--picker-rule-faint) }
     .stash-row:last-child { border-bottom:0 }
-    .stash-row:hover { background:var(--pick-fill-soft); border-radius:8px }
-    .stash-row.sel { background:var(--pick-accent-tint); border-radius:8px }
-    .stash-check { flex:none; width:15px; height:15px; margin:0; accent-color:var(--pick-accent); cursor:pointer }
+    .stash-row:hover { background:var(--picker-fill-soft); border-radius:8px }
+    .stash-row.sel { background:var(--picker-accent-tint); border-radius:8px }
+    .stash-check { flex:none; width:15px; height:15px; margin:0; accent-color:var(--picker-accent); cursor:pointer }
     .stash-main { flex:1; min-width:0 }
-    .stash-loc { margin:0 0 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--pick-muted-soft); font:10.5px/1.4 ui-monospace,SFMono-Regular,Consolas,'Courier New',monospace }
-    .stash-row.sel .stash-loc { color:var(--pick-accent-soft) }
-    .stash-main textarea { display:block; width:100%; min-height:44px; max-height:240px; box-sizing:border-box; resize:vertical; padding:0; border:0; background:transparent; color:var(--pick-ink-strong); outline:none; font:13px/1.6 system-ui,-apple-system,'Segoe UI',sans-serif }
-    .stash-main textarea::placeholder { color:var(--pick-placeholder) }
+    .stash-loc { margin:0 0 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--picker-muted-soft); font:10.5px/1.4 ui-monospace,SFMono-Regular,Consolas,'Courier New',monospace }
+    .stash-row.sel .stash-loc { color:var(--picker-accent-soft) }
+    .stash-main textarea { display:block; width:100%; min-height:44px; max-height:240px; box-sizing:border-box; resize:vertical; padding:0; border:0; background:transparent; color:var(--picker-ink-strong); outline:none; font:13px/1.6 system-ui,-apple-system,'Segoe UI',sans-serif }
+    .stash-main textarea::placeholder { color:var(--picker-placeholder) }
     .stash-actions { display:flex; align-items:center; gap:8px; margin-top:11px }
-    .stash-select-all { border:0; background:transparent; color:var(--pick-accent); cursor:pointer; font:600 12px/1.4 system-ui,sans-serif; padding:2px 4px }
-    .stash-clear { border:0; background:transparent; color:var(--pick-muted-faint); cursor:pointer; font:600 12px/1.4 system-ui,sans-serif; padding:2px 4px }
-    .stash-clear:hover:enabled { color:var(--pick-danger) }
+    .stash-select-all { border:0; background:transparent; color:var(--picker-accent); cursor:pointer; font:600 12px/1.4 system-ui,sans-serif; padding:2px 4px }
+    .stash-clear { border:0; background:transparent; color:var(--picker-muted-faint); cursor:pointer; font:600 12px/1.4 system-ui,sans-serif; padding:2px 4px }
+    .stash-clear:hover:enabled { color:var(--picker-danger) }
     .stash-clear:disabled { cursor:not-allowed; opacity:.45 }
     .stash-actions button.action { flex:0 1 auto; min-width:72px }
     .stash-actions-spacer { flex:1 }
-    button.danger { background:var(--pick-danger-bg); color:var(--pick-danger); border:1px solid var(--pick-danger-border) }
-    button.danger:hover { background:var(--pick-danger-bg-hover) }
+    button.danger { background:var(--picker-danger-bg); color:var(--picker-danger); border:1px solid var(--picker-danger-border) }
+    button.danger:hover { background:var(--picker-danger-bg-hover) }
   </style>
   <div class="box"><span class="tag"></span></div>
   <div class="dock">
     <button class="stash-btn" type="button" title="查看暂存的提示词"><span>暂存</span><span class="stash-count" hidden>0</span></button>
-    <div class="status" title="按住 Alt 并点击页面元素"><span class="status-dot"></span><span>Pick AI 已启用</span></div>
+    <div class="status" title="按住 Alt 并点击页面元素"><span class="status-dot"></span><span>Picker 已启用</span></div>
   </div>
   <div class="toast" role="status" aria-live="polite"></div>
-  <section class="panel" role="dialog" aria-label="Pick AI Prompt">
+  <section class="panel" role="dialog" aria-label="Picker Prompt">
     <div class="header"><div class="panel-target" hidden><span class="target-range"></span><span class="target-src"></span></div><button class="close" type="button" title="关闭">×</button></div>
     <div class="routing" hidden><span class="routing-label">发送给</span></div>
     <textarea placeholder="描述你希望 AI 完成的修改…"></textarea>
@@ -181,7 +181,7 @@ if (agentTargets.length) {
 }
 async function postPush(patch) {
   try {
-    await fetch('/__pick-ai/push', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
+    await fetch('/__picker/push', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
   } catch {
     // The push bridge is best-effort.
   }
@@ -200,7 +200,7 @@ textarea.addEventListener('keydown', event => {
   event.preventDefault()
   pushNow()
 })
-fetch('/__pick-ai/push', { headers: { accept: 'application/json' } })
+fetch('/__picker/push', { headers: { accept: 'application/json' } })
   .then(response => { if (!response.ok) throw new Error() })
   .catch(() => { pushOnceButton.hidden = true })
 let toastTimer
@@ -273,14 +273,14 @@ function showToast(message) {
   toastTimer = setTimeout(() => { toast.style.display = 'none' }, 1800)
 }
 async function sourceInfo(id) {
-  const response = await fetch('/__pick-ai/source?id=' + encodeURIComponent(id), { headers: { accept: 'application/json' } })
+  const response = await fetch('/__picker/source?id=' + encodeURIComponent(id), { headers: { accept: 'application/json' } })
   if (!response.ok) throw new Error('无法找到源码位置')
   return response.json()
 }
 async function record(kind, instruction) {
   if (!state.context || !panel.dataset.id) return
   try {
-    await fetch('/__pick-ai/record', {
+    await fetch('/__picker/record', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id: panel.dataset.id, kind, chain: state.context.range, instruction: instruction || '', target: state.target || '' }),
@@ -399,7 +399,7 @@ function pickTarget(element) {
   state.selected = element
   state.hovered = element
   highlight(element)
-  inspect(element).catch(error => window.alert('[Pick AI] ' + error.message))
+  inspect(element).catch(error => window.alert('[Picker] ' + error.message))
 }
 function closePanel() { panel.style.display = 'none'; state.selected = null; state.hovered = null; state.context = null; box.style.display = 'none' }
 

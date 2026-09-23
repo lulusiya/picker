@@ -21,7 +21,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleShortcut))
 
 <template>
   <header class="site-header">
-    <a class="brand" href="#playground">PickAI / Demo</a>
+    <a class="brand" href="#playground">Picker / Demo</a>
     <button class="command" type="button" aria-label="打开操作说明" @click="openHelp">
       <span>操作说明</span><kbd>Ctrl K</kbd>
     </button>
@@ -66,7 +66,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleShortcut))
   </main>
 
   <footer>
-    <p>PickAI Vue 3 integration · local package · development only</p>
+    <p>Picker Vue 3 integration · local package · development only</p>
   </footer>
 
   <dialog ref="helpDialog" @click.self="helpDialog?.close()">

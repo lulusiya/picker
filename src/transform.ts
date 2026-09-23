@@ -51,7 +51,7 @@ export function instrumentJsx(code: string, file: string): TransformResult | nul
       const node = path.node
       if (!node.loc || node.name.type === 'JSXNamespacedName') return
       const hasLocator = node.attributes.some(
-        (attribute: any) => attribute.type === 'JSXAttribute' && attribute.name?.name === 'data-pick-ai',
+        (attribute: any) => attribute.type === 'JSXAttribute' && attribute.name?.name === 'data-picker',
       )
       if (hasLocator) return
 
@@ -63,7 +63,7 @@ export function instrumentJsx(code: string, file: string): TransformResult | nul
       const insertAt = node.name.end
       if (typeof insertAt !== 'number') return
 
-      magic.appendLeft(insertAt, ` data-pick-ai="${id}"`)
+      magic.appendLeft(insertAt, ` data-picker="${id}"`)
       records.set(id, {
         file,
         line,
@@ -108,7 +108,7 @@ export function instrumentVueSfc(code: string, file: string): TransformResult | 
     // Vue compiler: NodeTypes.ELEMENT === 1, ElementTypes.ELEMENT === 0.
     if (node?.type === 1 && node.tagType === 0) {
       const alreadyLocated = node.props?.some(
-        (prop: any) => prop.type === 6 && prop.name === 'data-pick-ai',
+        (prop: any) => prop.type === 6 && prop.name === 'data-picker',
       )
       if (!alreadyLocated) {
         const absoluteOffset = templateOffset + node.loc.start.offset
@@ -116,7 +116,7 @@ export function instrumentVueSfc(code: string, file: string): TransformResult | 
         const end = offsetLocation(code, templateOffset + node.loc.end.offset)
         const id = `${fileHash}:${location.line}:${location.column}`
         const insertAt = absoluteOffset + 1 + node.tag.length
-        magic.appendLeft(insertAt, ` data-pick-ai="${id}"`)
+        magic.appendLeft(insertAt, ` data-picker="${id}"`)
         records.set(id, {
           file,
           ...location,

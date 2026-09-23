@@ -19,30 +19,30 @@ function entry(partial: Partial<PickEntry> & { seq: number; time: number }): Pic
 }
 
 async function writePicks(dir: string, picks: PickEntry[]): Promise<void> {
-  await fsp.mkdir(path.join(dir, '.pick-ai'), { recursive: true })
+  await fsp.mkdir(path.join(dir, '.picker'), { recursive: true })
   const body = picks.map(pick => JSON.stringify(pick)).join('\n')
-  await fsp.writeFile(path.join(dir, '.pick-ai', 'picks.jsonl'), body ? `${body}\n` : '')
+  await fsp.writeFile(path.join(dir, '.picker', 'picks.jsonl'), body ? `${body}\n` : '')
 }
 
 let root: string
 beforeEach(async () => {
-  root = await fsp.mkdtemp(path.join(os.tmpdir(), 'pick-ai-bridge-'))
+  root = await fsp.mkdtemp(path.join(os.tmpdir(), 'picker-bridge-'))
 })
 afterEach(async () => {
   await fsp.rm(root, { recursive: true, force: true })
 })
 
 describe('findStateDirs', () => {
-  it('finds nested .pick-ai directories', async () => {
+  it('finds nested .picker directories', async () => {
     await writePicks(path.join(root, 'demo'), [])
-    expect(findStateDirs(root)).toEqual([path.join(root, 'demo', '.pick-ai')])
+    expect(findStateDirs(root)).toEqual([path.join(root, 'demo', '.picker')])
   })
 
   it('skips node_modules and dot directories', async () => {
-    await fsp.mkdir(path.join(root, 'node_modules', '.pick-ai'), { recursive: true })
-    await fsp.mkdir(path.join(root, '.cache', '.pick-ai'), { recursive: true })
-    await fsp.mkdir(path.join(root, 'app', '.pick-ai'), { recursive: true })
-    expect(findStateDirs(root)).toEqual([path.join(root, 'app', '.pick-ai')])
+    await fsp.mkdir(path.join(root, 'node_modules', '.picker'), { recursive: true })
+    await fsp.mkdir(path.join(root, '.cache', '.picker'), { recursive: true })
+    await fsp.mkdir(path.join(root, 'app', '.picker'), { recursive: true })
+    expect(findStateDirs(root)).toEqual([path.join(root, 'app', '.picker')])
   })
 })
 

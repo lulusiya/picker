@@ -2,16 +2,16 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { formatPick, readPicks } from './bridge'
 
-export interface PickAiServerOptions {
-  /** Project root to search for `.pick-ai` state from. */
+export interface PickerServerOptions {
+  /** Project root to search for `.picker` state from. */
   root: string
   /** Agent name used to filter targeted picks. Omit to receive everything. */
   agent?: string
 }
 
-/** Builds the Pick AI MCP server. Transport is wired up by the caller. */
-export function createPickAiServer(options: PickAiServerOptions): McpServer {
-  const server = new McpServer({ name: 'pick-ai', version: '0.3.0' })
+/** Builds the Picker MCP server. Transport is wired up by the caller. */
+export function createPickerServer(options: PickerServerOptions): McpServer {
+  const server = new McpServer({ name: 'picker', version: '0.3.0' })
   let cursor = 0
 
   const picks = () => readPicks({ root: options.root, agent: options.agent })

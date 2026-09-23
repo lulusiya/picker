@@ -4,7 +4,7 @@ import path from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createPickAiServer } from '../src/mcp-server'
+import { createPickerServer } from '../src/mcp-server'
 import type { PickEntry } from '../src/state'
 
 function entry(partial: Partial<PickEntry> & { seq: number; time: number }): PickEntry {
@@ -21,20 +21,20 @@ function entry(partial: Partial<PickEntry> & { seq: number; time: number }): Pic
 }
 
 async function writePicks(picks: PickEntry[]): Promise<void> {
-  await fsp.mkdir(path.join(root, '.pick-ai'), { recursive: true })
-  await fsp.writeFile(path.join(root, '.pick-ai', 'picks.jsonl'), `${picks.map(p => JSON.stringify(p)).join('\n')}\n`)
+  await fsp.mkdir(path.join(root, '.picker'), { recursive: true })
+  await fsp.writeFile(path.join(root, '.picker', 'picks.jsonl'), `${picks.map(p => JSON.stringify(p)).join('\n')}\n`)
 }
 
 let root: string
 beforeEach(async () => {
-  root = await fsp.mkdtemp(path.join(os.tmpdir(), 'pick-ai-mcp-'))
+  root = await fsp.mkdtemp(path.join(os.tmpdir(), 'picker-mcp-'))
 })
 afterEach(async () => {
   await fsp.rm(root, { recursive: true, force: true })
 })
 
 async function connect(agent?: string) {
-  const server = createPickAiServer({ root, agent })
+  const server = createPickerServer({ root, agent })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   await server.connect(serverTransport)
   const client = new Client({ name: 'test-client', version: '1.0.0' })
@@ -42,7 +42,7 @@ async function connect(agent?: string) {
   return { server, client }
 }
 
-describe('pick-ai MCP server', () => {
+describe('picker MCP server', () => {
   it('lists tools and serves picks, advancing a per-session cursor', async () => {
     await writePicks([
       entry({ seq: 1, time: 10, instruction: 'broadcast edit', kind: 'prompt' }),

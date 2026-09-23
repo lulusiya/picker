@@ -5,13 +5,13 @@ import { parseEntries, type PickEntry } from './state'
 const SKIP = new Set(['node_modules', 'dist', 'build', 'coverage'])
 const DEFAULT_MAX_DEPTH = 3
 
-/** Finds every `.pick-ai` directory near a project root (bounded search). */
+/** Finds every `.picker` directory near a project root (bounded search). */
 export function findStateDirs(root: string, maxDepth = DEFAULT_MAX_DEPTH): string[] {
   const found: string[] = []
   const queue: Array<{ dir: string; depth: number }> = [{ dir: root, depth: 0 }]
   while (queue.length) {
     const { dir, depth } = queue.shift()!
-    if (fs.existsSync(path.join(dir, '.pick-ai'))) found.push(path.join(dir, '.pick-ai'))
+    if (fs.existsSync(path.join(dir, '.picker'))) found.push(path.join(dir, '.picker'))
     if (depth >= maxDepth) continue
     let entries: fs.Dirent[]
     try {

@@ -6,7 +6,7 @@ import { clientCode } from './client-code'
 import { buildPickEntry, defaultPushControl, normalizeTargets, parseEntries, parsePushControl, renderLastPick, type PickEntry, type RecordPayload } from './state'
 import { instrumentJsx, instrumentVueSfc, type SourceRecord } from './transform'
 
-export interface PickAiOptions {
+export interface PickerOptions {
   /**
    * Show the "open in editor" action in the pick panel. The editor is detected
    * by Vite's built-in `/__open-in-editor` endpoint, which honours
@@ -20,7 +20,7 @@ export interface PickAiOptions {
   /**
    * Directory, relative to the Vite root, where picked elements are written for
    * file-based agent consumption (`picks.jsonl` + `last-pick.md`). Set to false
-   * to disable. Defaults to `.pick-ai`.
+   * to disable. Defaults to `.picker`.
    */
   stateDir?: string | false
   /**
@@ -32,15 +32,15 @@ export interface PickAiOptions {
   targets?: string[]
 }
 
-const CLIENT_PATH = '/__pick-ai/client.js'
+const CLIENT_PATH = '/__picker/client.js'
 
 /** Builds the client module with the runtime config the browser needs. */
-export function createClientScript(options: PickAiOptions = {}): string {
+export function createClientScript(options: PickerOptions = {}): string {
   const config = {
     openInEditor: options.openInEditor !== false,
     targets: normalizeTargets(options.targets),
   }
-  return 'globalThis.__PICK_AI_CONFIG__ = ' + JSON.stringify(config) + '\n' + clientCode
+  return 'globalThis.__PICKER_CONFIG__ = ' + JSON.stringify(config) + '\n' + clientCode
 }
 
 /** Collects a request body as UTF-8, with a hard size cap. */
@@ -72,7 +72,7 @@ function mountStateBridge(
     seq = parseEntries(fs.readFileSync(logFile, 'utf8')).reduce((max, entry) => Math.max(max, entry.seq ?? 0), 0)
   } catch { /* first run: no state yet */ }
 
-  server.middlewares.use('/__pick-ai/record', async (req, res) => {
+  server.middlewares.use('/__picker/record', async (req, res) => {
     if (req.method !== 'POST') { res.statusCode = 405; res.end(); return }
     try {
       const payload = JSON.parse((await readBody(req)) || '{}') as RecordPayload
@@ -102,7 +102,7 @@ function mountStateBridge(
     }
   })
 
-  server.middlewares.use('/__pick-ai/push', async (req, res) => {
+  server.middlewares.use('/__picker/push', async (req, res) => {
     res.setHeader('content-type', 'application/json; charset=utf-8')
     let control = defaultPushControl()
     try { control = parsePushControl(fs.readFileSync(pushFile, 'utf8')) } catch { /* no control yet */ }
@@ -124,7 +124,7 @@ function mountStateBridge(
     res.end(JSON.stringify(control))
   })
 
-  server.middlewares.use('/__pick-ai/picks', (_req, res) => {
+  server.middlewares.use('/__picker/picks', (_req, res) => {
     res.setHeader('content-type', 'application/json; charset=utf-8')
     let entries: PickEntry[] = []
     try { entries = parseEntries(fs.readFileSync(logFile, 'utf8')) } catch { /* no log yet */ }
@@ -132,14 +132,14 @@ function mountStateBridge(
   })
 }
 
-export default function pickAi(options: PickAiOptions = {}): Plugin {
+export default function picker(options: PickerOptions = {}): Plugin {
   const records = new Map<string, SourceRecord>()
   const include = options.include ?? /\.(?:[jt]sx|vue)$/
   const script = createClientScript(options)
-  const stateDirName = options.stateDir === false ? null : options.stateDir ?? '.pick-ai'
+  const stateDirName = options.stateDir === false ? null : options.stateDir ?? '.picker'
 
   return {
-    name: 'vite-plugin-pick-ai',
+    name: 'vite-plugin-picker',
     apply: 'serve',
     enforce: 'pre',
     transformIndexHtml() {
@@ -177,7 +177,7 @@ export default function pickAi(options: PickAiOptions = {}): Plugin {
         res.setHeader('cache-control', 'no-store')
         res.end(script)
       })
-      server.middlewares.use('/__pick-ai/source', (req, res) => {
+      server.middlewares.use('/__picker/source', (req, res) => {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const record = records.get(url.searchParams.get('id') ?? '')
         res.setHeader('content-type', 'application/json; charset=utf-8')
