@@ -27,7 +27,42 @@ const AGENT = process.env.PICKER_AGENT?.trim() || 'pi'
 const SKIP = new Set(['node_modules', 'dist', 'build', 'coverage'])
 const MAX_DEPTH = 3
 const POLL_MS = 800
+const HEARTBEAT_MS = 2000
 const DIR_CACHE_MS = 5000
+
+/**
+ * Picker discovers who can take an immediate push by watching heartbeats, so a
+ * panel never offers a push button that would silently do nothing. This
+ * extension is the only thing that beats today, because Pi is the only host that
+ * exposes an injection channel (sendMessage with triggerTurn).
+ */
+function heartbeatFile(stateDir: string): string {
+  return path.join(stateDir, 'listeners', `${AGENT}.json`)
+}
+
+function beat(stateDirs: string[]): void {
+  for (const stateDir of stateDirs) {
+    try {
+      fs.mkdirSync(path.dirname(heartbeatFile(stateDir)), { recursive: true })
+      fs.writeFileSync(
+        heartbeatFile(stateDir),
+        JSON.stringify({ agent: AGENT, mode: 'push', pid: process.pid, at: Date.now() }),
+      )
+    } catch {
+      // A read-only or missing .picker is not worth breaking the session over.
+    }
+  }
+}
+
+function stopBeating(stateDirs: string[]): void {
+  for (const stateDir of stateDirs) {
+    try {
+      fs.rmSync(heartbeatFile(stateDir), { force: true })
+    } catch {
+      // Already gone.
+    }
+  }
+}
 
 interface Candidate {
   file: string
@@ -110,6 +145,7 @@ export default function (pi: ExtensionAPI) {
   let lastInjected = ''
   let lastOnce = 0
   let timer: ReturnType<typeof setInterval> | null = null
+  let beatTimer: ReturnType<typeof setInterval> | null = null
   let dirCache: { root: string; dirs: string[]; at: number } | null = null
 
   const getStateDirs = (root: string): string[] => {
@@ -149,6 +185,12 @@ export default function (pi: ExtensionAPI) {
   pi.on('session_start', async (_event, ctx) => {
     currentCtx = ctx
     showStatus(ctx)
+    if (!beatTimer) {
+      beat(getStateDirs(ctx.cwd))
+      beatTimer = setInterval(() => {
+        if (currentCtx) beat(getStateDirs(currentCtx.cwd))
+      }, HEARTBEAT_MS)
+    }
     if (timer) return
     timer = setInterval(() => {
       if (!currentCtx) return
@@ -180,6 +222,11 @@ export default function (pi: ExtensionAPI) {
   })
 
   pi.on('session_shutdown', async () => {
+    if (beatTimer) {
+      clearInterval(beatTimer)
+      beatTimer = null
+      if (currentCtx) stopBeating(getStateDirs(currentCtx.cwd))
+    }
     if (!timer) return
     clearInterval(timer)
     timer = null

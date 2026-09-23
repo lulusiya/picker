@@ -77,6 +77,9 @@ root.innerHTML = \`
     .route { padding:4px 10px; border:1px solid var(--picker-rule-strong); border-radius:999px; background:var(--picker-surface); color:var(--picker-ink-route); cursor:pointer; font:600 11px/1 system-ui,sans-serif }
     .route:hover { border-color:var(--picker-accent-border); color:var(--picker-accent-hover) }
     .route.active { border-color:var(--picker-accent); background:var(--picker-accent); color:var(--picker-on-accent) }
+    .route.live::after { content:''; display:inline-block; width:5px; height:5px; margin-left:5px; border-radius:50%; background:var(--picker-success); vertical-align:middle }
+    .route.active.live::after { background:currentColor }
+    .action:disabled { opacity:.5; cursor:not-allowed }
     textarea { width:100%; min-height:100px; max-height:200px; box-sizing:border-box; resize:vertical; padding:10px; border:1px solid var(--picker-rule-strong); border-radius:10px; outline:none; font:13px/1.55 system-ui,sans-serif; color:var(--picker-ink-strong) }
     textarea:focus { border-color:var(--picker-accent-soft); box-shadow:0 0 0 3px var(--picker-accent-focus) }
     .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:13px }
@@ -157,11 +160,50 @@ const stashCopyButton = root.querySelector('.stash-copy')
 const stashDeleteButton = root.querySelector('.stash-delete')
 const routing = root.querySelector('.routing')
 const agentTargets = Array.isArray(runtimeConfig.targets) ? runtimeConfig.targets : []
-function syncRouting() {
-  routing.querySelectorAll('.route').forEach(button => {
-    button.classList.toggle('active', (button.dataset.target || '') === state.target)
-  })
+// Agents that can inject into a live session, refreshed from the dev server.
+const listeners = []
+function pushTarget() {
+  return state.target || ''
 }
+function canPush() {
+  const wanted = pushTarget()
+  return wanted ? listeners.some(item => item.agent === wanted) : listeners.length > 0
+}
+function pushLabel() {
+  return pushTarget() ? '推送给 ' + pushTarget() : '推送'
+}function syncRouting() {
+  routing.querySelectorAll('.route').forEach(button => {
+    const value = button.dataset.target || ''
+    button.classList.toggle('active', value === state.target)
+    const live = value === '' ? listeners.length > 0 : listeners.some(item => item.agent === value)
+    button.classList.toggle('live', live)
+    button.title = live
+      ? '有 agent 正在监听，可立即推送'
+      : '没有 agent 在监听；选取仍会写入 .picker/，可用复制'
+  })
+  if (pushOnceButton) {
+    // Hidden rather than disabled: a disabled button's tooltip is invisible, and
+    // every action already writes the pick to .picker/ anyway.
+    pushOnceButton.hidden = !canPush()
+    pushOnceButton.textContent = pushTarget() ? '推送给 ' + pushTarget() : '推送'
+    pushOnceButton.title = '立即推送到正在监听的会话'
+  }
+}
+async function refreshListeners() {
+  try {
+    const res = await fetch('/__picker/listeners')
+    if (res.ok) {
+      const body = await res.json()
+      listeners.length = 0
+      if (Array.isArray(body.listeners)) body.listeners.forEach(item => listeners.push(item))
+    }
+  } catch {
+    // The bridge is best-effort; an unreachable server means nobody is listening.
+  }
+  syncRouting()
+  refreshPanel()
+}
+setInterval(refreshListeners, 3000)
 if (agentTargets.length) {
   routing.hidden = false
   const addRoute = (value, label) => {
@@ -179,18 +221,27 @@ if (agentTargets.length) {
 }
 async function postPush(patch) {
   try {
-    await fetch('/__picker/push', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
+    const res = await fetch('/__picker/push', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
+    if (res.status === 409) return { ok: false, reason: 'no-listener' }
+    return { ok: res.ok, reason: res.ok ? '' : 'error' }
   } catch {
-    // The push bridge is best-effort.
+    return { ok: false, reason: 'offline' }
   }
 }
 async function pushNow() {
   if (!state.context) return
   await record('prompt', textarea.value)
-  await postPush({ once: true, target: state.target || '' })
+  const result = await postPush({ once: true, target: pushTarget() })
   textarea.value = ''
-  closePanel()
-  showToast('已推送到会话')
+  if (result.ok) {
+    closePanel()
+    showToast(pushTarget() ? '已立即推送给 ' + pushTarget() : '已立即推送给监听中的 agent')
+    return
+  }
+  // The pick is already in .picker/, so nothing is lost - say what actually happened.
+  await refreshListeners()
+  showToast(result.reason === 'no-listener' ? '没有 agent 在监听，已写入 .picker/，请用复制' : '推送通道不可用，已写入 .picker/，请用复制')
+  refreshPanel()
 }
 pushOnceButton.addEventListener('click', pushNow)
 textarea.addEventListener('keydown', event => {
@@ -302,6 +353,7 @@ function refreshPanel() {
   stashNowButton.disabled = !has
   pushOnceButton.disabled = !has
   copyButton.disabled = !has
+  syncRouting()
 }
 function renderStashList() {
   stashList.replaceChildren()
@@ -389,6 +441,7 @@ async function inspect(element) {
   state.context = { src: info.file + ':' + info.line + ':' + info.column, range }
   textarea.value = ''
   refreshPanel()
+  refreshListeners()
   panel.style.display = 'block'; panel.dataset.id = id
   requestAnimationFrame(() => { positionPanel(element); textarea.focus() })
 }

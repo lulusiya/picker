@@ -153,6 +153,42 @@ inject at a lifecycle event, so a pushed pick arrives on your next prompt.
 Set `PICKER_AGENT` to match a name in `targets` (defaults to `pi`), then
 `/reload`.
 
+## Implementing push for your own agent
+
+Push needs the host to offer a way to inject from outside and trigger a turn —
+Pi's extension API has one, Claude Code and Codex hooks do not. If your host can
+do that, the plugin will discover it without any configuration.
+
+Two things to implement:
+
+**1. Beat a heartbeat while running.** Write
+the file every couple of seconds and remove it on shutdown:
+
+```jsonc
+// <stateDir>/listeners/<agent>.json
+{ "agent": "pi", "mode": "push", "pid": 1234, "at": 1790189366374 }
+```
+
+`at` is epoch milliseconds. A heartbeat older than **10 seconds** counts as gone,
+which is how a crashed agent stops being offered.
+
+**2. Poll `<stateDir>/push.json` and inject when it changes.**
+
+The panel writes it when someone presses Push:
+
+```jsonc
+{ "once": 1790189366424, "target": "pi" } // target "" means broadcast
+```
+
+Inject when `once` is greater than the last value you saw, and ignore it when
+`target` names a different agent. In Pi this is `sendMessage({...}, { deliverAs:
+'followUp', triggerTurn: true })`.
+
+The panel renders its routing row from `/__picker/listeners`, so a live heartbeat
+is what makes the green dot and the push button appear. **Push is refused with
+HTTP 409 when no push listener is live** — the server will not write a `push.json`
+that nobody will read.
+
 ## MCP instead of a hook
 
 Anything that speaks MCP can pull picks without a hook:
@@ -175,6 +211,7 @@ push-based and happens whether or not the model thinks to look.
 | Nothing ever appears | Does `.picker/inbox/<agent>.md` exist? The pick only goes there if you selected that target in the panel — otherwise it lands in `last-pick.md`. |
 | Appears once, never again | Working as intended. Bump it with the 推送 button, or delete `.picker/.hook/<agent>.json`. |
 | Want to see the raw output | `picker-hook --agent codex --force` |
+| No Push button in the panel | Nothing is beating a heartbeat. Start the agent, or check `.picker/listeners/`. Paste instead — every action already writes the pick to `.picker/`. |
 | Codex ignores it | Run `/hooks` and trust the definition. |
 | Claude Code ignores it | `claude --debug` prints hook stdout and exit codes. Confirm the command runs from the project root. |
 | Wrong project | Pass `--root`, or set `PICKER_ROOT`. |

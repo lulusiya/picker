@@ -69,8 +69,41 @@ picker({
 5. **Stash** saves the element and instruction into the stash tray; you can keep
    picking other elements. The tray supports checkboxes, batch copy/delete and
    editing each instruction in place.
-6. **Push** (or press `Enter` in the textarea; `Shift+Enter` for a newline) sends
-   the current pick and instruction to the selected target's session immediately.
+6. **Push** (or press `Enter` in the textarea; `Shift+Enter` for a newline) injects
+   the current pick into a session that is listening right now. The button only
+   exists when something is actually listening — see below.
+
+## Delivery capability comes in four tiers
+
+The word "push" is easy to abuse, so here is what each tier actually needs:
+
+| Tier | Meaning | Requires | Reachable today |
+|---|---|---|---|
+| **Copy** | goes to the clipboard | nothing | everything |
+| **Queue** | written to `.picker/`, read on the agent's next prompt | the agent has a prompt hook | agents with `picker-hook` installed |
+| **Push** | injected into a **running** session, without waiting for it to speak | the host exposes an injection channel | **Pi only** |
+| **Pull** | the agent asks for it | an MCP client | any MCP client |
+
+The distinction that matters: **push requires the host to offer a way to inject
+from outside and trigger a turn.** Pi does (its extension API's
+`sendMessage(..., { triggerTurn: true })`). Claude Code and Codex hooks only fire
+on lifecycle events, so they have no such entry point — for them "push" really
+means **queued until they next speak**, and you still have to send them a message.
+
+So the panel does not lie:
+
+- An agent that beats a heartbeat (`.picker/listeners/<agent>.json`, refreshed
+every 2s) gets a green dot on its route button, and the push button appears,
+labelled "Push to pi".
+- With no heartbeat the push button is **not rendered at all**, so a success toast
+for a push that goes nowhere is impossible.
+- A heartbeat older than 10s (the agent closed) takes the capability away again.
+
+Any host that implements "heartbeat plus poll `push.json`" therefore graduates
+from queue to push on its own — no agent names are hardcoded in the plugin.
+
+Also: **every action writes the pick into `.picker/`** (Copy, Stash and Push
+alike), so a failed push never loses the pick.
 
 ## Handing it to an AI (file bridge)
 

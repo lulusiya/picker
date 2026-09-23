@@ -112,23 +112,49 @@ describe('Vite plugin HTML injection', () => {
       expect(JSON.parse(lines[1])).toMatchObject({ instruction: 'for everyone', targets: [], seq: 2 })
 
       const pushUrl = `http://127.0.0.1:${port}/__picker/push`
+      const listenersUrl = `http://127.0.0.1:${port}/__picker/listeners`
       expect(await (await fetch(pushUrl)).json()).toEqual({ once: 0, target: '' })
+      expect(await (await fetch(listenersUrl)).json()).toEqual({ listeners: [] })
+
+      // With nobody connected there is nothing to inject into, so the push must
+      // fail loudly instead of writing a timestamp nobody reads.
+      const nobody = await fetch(pushUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ once: true, target: 'codex' }),
+      })
+      expect(nobody.status).toBe(409)
+      expect(((await nobody.json()) as { error: string }).error).toBe('No agent is listening')
+      expect(await (await fetch(pushUrl)).json()).toEqual({ once: 0, target: '' })
+
+      // A push-capable agent announces itself with a heartbeat.
+      const listenersDir = path.join(root, '.picker', 'listeners')
+      await fsp.mkdir(listenersDir, { recursive: true })
+      await fsp.writeFile(
+        path.join(listenersDir, 'codex.json'),
+        JSON.stringify({ agent: 'codex', mode: 'push', pid: 1, at: Date.now() }),
+      )
+      const reported = (await (await fetch(listenersUrl)).json()) as { listeners: Array<{ agent: string; mode: string }> }
+      expect(reported.listeners).toEqual([expect.objectContaining({ agent: 'codex', mode: 'push' })])
 
       const once = await fetch(pushUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ once: true, target: 'codex' }),
       })
+      expect(once.status).toBe(200)
       const onceBody = (await once.json()) as { once: number; target: string }
       expect(onceBody.once).toBeGreaterThan(0)
       expect(onceBody.target).toBe('codex')
 
-      // A target that is not configured is downgraded to a broadcast request.
+      // A target that is not configured is downgraded to a broadcast request,
+      // which any live listener accepts.
       const unknown = await fetch(pushUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ once: true, target: 'ghost' }),
       })
+      expect(unknown.status).toBe(200)
       expect(((await unknown.json()) as { target: string }).target).toBe('')
     } finally {
       await new Promise<void>(resolve => httpServer.close(() => resolve()))

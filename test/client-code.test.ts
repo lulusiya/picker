@@ -107,8 +107,21 @@ describe('client runtime', () => {
     expect(clientCode).not.toContain('push-toggle')
     expect(clientCode).not.toContain('实时推送')
     expect(clientCode).toContain("await record('prompt', textarea.value)")
-    expect(clientCode).toContain("postPush({ once: true, target: state.target || '' })")
+    expect(clientCode).toContain('postPush({ once: true, target: pushTarget() })')
     expect(clientCode).toContain("if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return")
+  })
+
+  // Pushing injects into a session that is running right now. A static target
+  // list cannot know who that is, so capability comes from the server's
+  // heartbeat view and the button disappears when nobody can take it.
+  it('only offers immediate push when an agent is listening', () => {
+    expect(clientCode).toContain("fetch('/__picker/listeners')")
+    expect(clientCode).toContain('function canPush()')
+    expect(clientCode).toContain('pushOnceButton.hidden = !canPush()')
+    expect(clientCode).toContain("result.reason === 'no-listener'")
+    expect(clientCode).toContain('classList.toggle(\'live\', live)')
+    // The old "success no matter what" toast is gone.
+    expect(clientCode).not.toContain("'已推送到会话'")
   })
 
   it('themes the overlay through CSS variables with a blue accent', () => {

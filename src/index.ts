@@ -4,6 +4,7 @@ import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
 import { clientCode } from './client-code'
 import { buildPickEntry, defaultPushControl, normalizeTargets, parseEntries, parsePushControl, renderLastPick, type PickEntry, type RecordPayload } from './state'
+import { hasPushListener, readListeners } from './listeners'
 import { instrumentJsx, instrumentVueSfc, type SourceRecord } from './transform'
 
 export interface PickerOptions {
@@ -102,6 +103,14 @@ function mountStateBridge(
         const patch = JSON.parse((await readBody(req)) || '{}') as { once?: boolean; target?: string }
         if (patch.once === true) {
           const target = patch.target && agentTargets.includes(patch.target) ? patch.target : ''
+          // Push means "inject into a running session". With nobody connected there
+          // is nothing to inject into, so refuse instead of writing a timestamp
+          // nobody will read and letting the caller report success.
+          if (!hasPushListener(stateDir, target)) {
+            res.statusCode = 409
+            res.end(JSON.stringify({ error: 'No agent is listening', target, live: readListeners(stateDir).map((l) => l.agent) }))
+            return
+          }
           control = { once: Date.now(), target }
         }
         fs.mkdirSync(stateDir, { recursive: true })
@@ -120,6 +129,14 @@ function mountStateBridge(
     let entries: PickEntry[] = []
     try { entries = parseEntries(fs.readFileSync(logFile, 'utf8')) } catch { /* no log yet */ }
     res.end(JSON.stringify({ seq, entries }))
+  })
+
+  // Who can take an immediate push right now. The panel renders its routing row
+  // and enables the push action from this, so a dead agent can never be offered.
+  server.middlewares.use('/__picker/listeners', (_req, res) => {
+    res.setHeader('content-type', 'application/json; charset=utf-8')
+    res.setHeader('cache-control', 'no-store')
+    res.end(JSON.stringify({ listeners: readListeners(stateDir) }))
   })
 }
 
