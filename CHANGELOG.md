@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-24
+
 ### Added
 
 - A π switch at the top-right of the prompt box turns Pi push on and off per
@@ -129,6 +131,7 @@ First public release.
 - Stale source records are evicted on hot update, so edited files no longer
   resolve to shifted line numbers.
 
-[Unreleased]: https://github.com/lulusiya/picker/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/lulusiya/picker/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/lulusiya/picker/releases/tag/v0.5.0
 [0.4.0]: https://github.com/lulusiya/picker/releases/tag/v0.4.0
 [0.3.0]: https://github.com/lulusiya/picker/releases/tag/v0.3.0

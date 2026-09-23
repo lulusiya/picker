@@ -11,7 +11,7 @@ export interface PickerServerOptions {
 
 /** Builds the Picker MCP server. Transport is wired up by the caller. */
 export function createPickerServer(options: PickerServerOptions): McpServer {
-  const server = new McpServer({ name: 'picker', version: '0.4.0' })
+  const server = new McpServer({ name: 'picker', version: '0.5.0' })
   let cursor = 0
 
   const picks = () => readPicks({ root: options.root, agent: options.agent })
