@@ -1,0 +1,8 @@
+{
+  "date": "2026-09-09",
+  "framework": "Vue 3 + Vite",
+  "font": "system sans and mono",
+  "palette": "none before build",
+  "motion": "motion-cut",
+  "spacing": "4pt"
+}

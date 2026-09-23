@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+*.tgz
+.pick-ai/
+
+# dev server artifacts
+*.log
+*.pid
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
