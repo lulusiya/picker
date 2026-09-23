@@ -132,10 +132,10 @@ describe('Vite plugin HTML injection', () => {
       await fsp.mkdir(listenersDir, { recursive: true })
       await fsp.writeFile(
         path.join(listenersDir, 'codex.json'),
-        JSON.stringify({ agent: 'codex', mode: 'push', pid: 1, at: Date.now() }),
+        JSON.stringify({ agent: 'codex', pid: 1, at: Date.now() }),
       )
-      const reported = (await (await fetch(listenersUrl)).json()) as { listeners: Array<{ agent: string; mode: string }> }
-      expect(reported.listeners).toEqual([expect.objectContaining({ agent: 'codex', mode: 'push' })])
+      const reported = (await (await fetch(listenersUrl)).json()) as { listeners: Array<{ agent: string }> }
+      expect(reported.listeners).toEqual([expect.objectContaining({ agent: 'codex' })])
 
       const once = await fetch(pushUrl, {
         method: 'POST',

@@ -93,12 +93,16 @@ describe('client runtime', () => {
     expect(clientCode).not.toContain('__open-in-editor')
   })
 
-  it('routes picks to a configured agent inbox', () => {
-    expect(clientCode).toContain('class="routing"')
-    expect(clientCode).toContain('state.target = value')
-    expect(clientCode).toContain("state.target = value; syncRouting(); record('pick')")
-    expect(clientCode).toContain('target: state.target')
-    expect(clientCode).toContain("addRoute('', '全部')")
+  it('offers Pi push through a switch instead of a routing row', () => {
+    expect(clientCode).not.toContain('发送给')
+    expect(clientCode).not.toContain('class="routing"')
+    expect(clientCode).not.toContain('addRoute')
+    expect(clientCode).not.toContain('state.target')
+    expect(clientCode).toContain('class="pi-toggle"')
+    expect(clientCode).toContain('class="pi-glyph"')
+    expect(clientCode).toContain("setAttribute('aria-pressed'")
+    expect(clientCode).toContain('localStorage.getItem(PI_PUSH_KEY)')
+    expect(clientCode).toContain('localStorage.setItem(PI_PUSH_KEY')
   })
 
   it('pushes the current pick on demand and on Enter', () => {
@@ -107,21 +111,38 @@ describe('client runtime', () => {
     expect(clientCode).not.toContain('push-toggle')
     expect(clientCode).not.toContain('实时推送')
     expect(clientCode).toContain("await record('prompt', textarea.value)")
-    expect(clientCode).toContain('postPush({ once: true, target: pushTarget() })')
+    expect(clientCode).toContain("postPush({ once: true, target: '' })")
     expect(clientCode).toContain("if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return")
   })
 
-  // Pushing injects into a session that is running right now. A static target
-  // list cannot know who that is, so capability comes from the server's
-  // heartbeat view and the button disappears when nobody can take it.
-  it('only offers immediate push when an agent is listening', () => {
+  // Pushing injects into a session that is running right now. The switch is the
+  // user's intent; a fresh heartbeat is the capability. Both are needed, so the
+  // button can never promise a delivery that goes nowhere.
+  it('only offers immediate push while the switch is on and an agent listens', () => {
     expect(clientCode).toContain("fetch('/__picker/listeners')")
     expect(clientCode).toContain('function canPush()')
+    expect(clientCode).toContain('return piPush && listeners.length > 0')
     expect(clientCode).toContain('pushOnceButton.hidden = !canPush()')
     expect(clientCode).toContain("result.reason === 'no-listener'")
-    expect(clientCode).toContain('classList.toggle(\'live\', live)')
     // The old "success no matter what" toast is gone.
     expect(clientCode).not.toContain("'已推送到会话'")
+  })
+
+  // Only a host that can inject into a running session beats a heartbeat (Pi
+  // today), so liveness is the whole capability check. There is no second
+  // "queue" notion for agents that are merely read on their next prompt.
+  it('treats a live heartbeat as the only push capability', () => {
+    expect(clientCode).not.toContain('pushListeners')
+    expect(clientCode).not.toContain("mode === 'push'")
+    expect(clientCode).toContain('function liveAgentNames()')
+    expect(clientCode).toContain('type="button" hidden title="立即推送到当前目标的会话"')
+  })
+
+  it('falls back to copy on Enter when nothing can take a push', () => {
+    expect(clientCode).toContain('async function copyNow()')
+    expect(clientCode).toContain("copyButton.addEventListener('click', copyNow)")
+    expect(clientCode).toContain('if (canPush()) pushNow()')
+    expect(clientCode).toContain('else copyNow()')
   })
 
   it('themes the overlay through CSS variables with a blue accent', () => {

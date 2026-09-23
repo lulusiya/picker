@@ -26,13 +26,13 @@ describe('readListeners', () => {
 
   it('reports a fresh heartbeat', () => {
     const now = 1_000_000
-    beat('pi', { agent: 'pi', mode: 'push', pid: 42, at: now })
-    expect(readListeners(stateDir, now)).toEqual([{ agent: 'pi', mode: 'push', pid: 42, at: now }])
+    beat('pi', { agent: 'pi', pid: 42, at: now })
+    expect(readListeners(stateDir, now)).toEqual([{ agent: 'pi', pid: 42, at: now }])
   })
 
   it('drops a heartbeat that went stale', () => {
     const now = 1_000_000
-    beat('pi', { agent: 'pi', mode: 'push', at: now - LISTENER_STALE_MS - 1 })
+    beat('pi', { agent: 'pi', at: now - LISTENER_STALE_MS - 1 })
     expect(readListeners(stateDir, now)).toEqual([])
   })
 
@@ -43,16 +43,19 @@ describe('readListeners', () => {
   })
 
   it('falls back to the file name when the body omits the agent', () => {
-    beat('claude', { mode: 'queue', at: Date.now() })
+    beat('claude', { at: Date.now() })
     expect(readListeners(stateDir).map(listener => listener.agent)).toEqual(['claude'])
   })
 
-  it('treats an unknown mode as push and defaults a bad timestamp to stale', () => {
+  it('keeps a heartbeat that carries fields it does not know about', () => {
     const now = 1_000_000
-    beat('a', { mode: 'nonsense', at: now })
+    beat('a', { agent: 'a', mode: 'whatever', pid: 7, at: now })
+    expect(readListeners(stateDir, now)).toEqual([{ agent: 'a', pid: 7, at: now }])
+  })
+
+  it('drops a heartbeat whose timestamp is not a number', () => {
     beat('b', { at: 'not a number' })
-    const fresh = readListeners(stateDir, now)
-    expect(fresh).toEqual([expect.objectContaining({ agent: 'a', mode: 'push' })])
+    expect(readListeners(stateDir)).toEqual([])
   })
 
   it('ignores malformed and non-json files', () => {
@@ -64,7 +67,7 @@ describe('readListeners', () => {
 
   it('sorts by agent so the panel order is stable', () => {
     const now = Date.now()
-    for (const name of ['pi', 'codex', 'claude']) beat(name, { agent: name, mode: 'push', at: now })
+    for (const name of ['pi', 'codex', 'claude']) beat(name, { agent: name, at: now })
     expect(readListeners(stateDir, now).map(listener => listener.agent)).toEqual(['claude', 'codex', 'pi'])
   })
 })
@@ -76,24 +79,18 @@ describe('hasPushListener', () => {
   })
 
   it('matches a named target only for that agent', () => {
-    beat('pi', { agent: 'pi', mode: 'push', at: Date.now() })
+    beat('pi', { agent: 'pi', at: Date.now() })
     expect(hasPushListener(stateDir, 'pi')).toBe(true)
     expect(hasPushListener(stateDir, 'codex')).toBe(false)
   })
 
   it('lets a broadcast go to any live listener', () => {
-    beat('pi', { agent: 'pi', mode: 'push', at: Date.now() })
+    beat('pi', { agent: 'pi', at: Date.now() })
     expect(hasPushListener(stateDir, '')).toBe(true)
   })
 
-  it('ignores a queue-only listener, which cannot be injected into', () => {
-    beat('claude', { agent: 'claude', mode: 'queue', at: Date.now() })
-    expect(hasPushListener(stateDir, 'claude')).toBe(false)
-    expect(hasPushListener(stateDir, '')).toBe(false)
-  })
-
   it('ignores a stale listener', () => {
-    beat('pi', { agent: 'pi', mode: 'push', at: Date.now() - LISTENER_STALE_MS - 1 })
+    beat('pi', { agent: 'pi', at: Date.now() - LISTENER_STALE_MS - 1 })
     expect(hasPushListener(stateDir, 'pi')).toBe(false)
   })
 })

@@ -6,17 +6,51 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A π switch at the top-right of the prompt box turns Pi push on and off per
+  browser. Push is off until you turn it on, and the button only appears while a
+  heartbeat is fresh.
+
+### Changed
+
+- The "Send to" routing row is gone: picks are always broadcast. The push target
+  is no longer whatever the row said, so a stale selection can no longer hide a
+  push that would have worked.
+- A heartbeat now *means* "I can take a push right now". The `mode: 'push' | 'queue'`
+  field is gone from the listener protocol and the panel no longer keeps a second
+  "queue" notion for agents that are only read on their next prompt. Only hosts
+  that can inject into a running session (Pi today) beat a heartbeat, so Claude
+  Code and Codex can never receive a push - Copy is their path, plus whatever
+  their own prompt hook reads from `.picker/`.
+- Pressing `Enter` in the panel now does what the panel can actually do: it pushes
+  when the switch is on and an agent is listening, and copies otherwise, instead
+  of writing a `push.json` nobody reads and reporting a delivery that never
+  happened.
+
+### Removed
+
+- The "Queue" tier from the delivery-capability documentation. The panel has
+  three tiers: Copy, Push and Pull. Passive file pickup by a prompt hook is still
+  documented in `docs/agents.md`; it is an integration, not a panel capability.
+
+### Fixed
+
+- A restarted Pi session replayed the last `push.json` request as soon as it
+  polled, injecting a pick nobody had pushed in that session. The listener now
+  treats the `once` value already on disk as consumed when the session starts.
+
 ## [0.4.0] - 2026-09-24
 
 ### Added
 
 - Delivery capability is now discovered instead of assumed. A push-capable agent
   beats a heartbeat at `.picker/listeners/<agent>.json` while it runs, the plugin
-  exposes `/__picker/listeners`, and the panel renders its routing row and push
-  action from that. The push button is not rendered when nothing is listening, so
+  exposes `/__picker/listeners`, and the panel renders its push action from that.
+  The push button is not rendered when nothing is listening, so
   it can no longer report success for a push that goes nowhere. Any host that
-  beats a heartbeat and polls `push.json` graduates from queue to push without
-  plugin changes.
+  beats a heartbeat and polls `push.json` becomes a push target without plugin
+  changes.
 - `picker-hook`, a hook command that turns the passive file bridge into prompt
   context for Claude Code and Codex. It never exits non-zero (a non-zero exit
   rejects the prompt in Claude Code and blocks it in Codex), stays silent when

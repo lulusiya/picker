@@ -38,9 +38,10 @@ defineProps<{
 
 .stat__value {
   margin: 6px 0 8px;
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 620;
-  letter-spacing: -0.025em;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -49,7 +50,7 @@ defineProps<{
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 550;
   color: var(--muted);
 }
@@ -64,6 +65,7 @@ defineProps<{
 
 .stat__period {
   color: var(--faint);
+  font-size: 11.5px;
   font-weight: 400;
 }
 </style>

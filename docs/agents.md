@@ -7,12 +7,14 @@ paste into the agent. Both flows take the same number of steps:
 
 | | Copy | Hook |
 |---|---|---|
-| Browser | `Alt`+click, write the request, Copy | `Alt`+click, write the request, pick "Send to" |
+| Browser | `Alt`+click, write the request, Copy | `Alt`+click, write the request, Stash |
 | Agent | switch window, `Ctrl+V`, `Enter` | switch window, type something, `Enter` |
 | Setup | none | config file, plus a trust prompt in Codex |
 
-The hook saves you a paste. Copy shows you exactly what you are sending, needs no
-setup, works with any agent, and cannot break when a host changes its hook format.
+The hook saves you a paste - any panel action (Copy, Stash, Push) writes the pick
+to `.picker/`, and Stash never touches the clipboard. Copy shows you exactly what
+you are sending, needs no setup, works with any agent, and cannot break when a
+host changes its hook format.
 
 **Neither Claude Code nor Codex can wake a running session from the outside.**
 Hooks fire on lifecycle events (`UserPromptSubmit`, tool calls), so a pick is
@@ -53,7 +55,7 @@ picker-hook [--agent <name>] [--format text|codex] [--root <dir>] [--force]
 
 | Flag / env | Default | Meaning |
 |---|---|---|
-| `--agent`, `PICKER_AGENT` | *(none)* | Name from the plugin's `targets` option. Selects `inbox/<agent>.md` over `last-pick.md`. |
+| `--agent`, `PICKER_AGENT` | *(none)* | Name this agent answers to. Prefers `inbox/<agent>.md` over `last-pick.md` when one exists, and keeps this agent's own delivery cursor. |
 | `--format`, `PICKER_HOOK_FORMAT` | `text` | `text` prints the block; `codex` prints the `hookSpecificOutput` JSON envelope. |
 | `--root`, `PICKER_ROOT` | `process.cwd()` | Where to start looking for `.picker`. Searches downwards first, then upwards. |
 | `--force` | off | Emit even if this pick was already delivered. For testing. |
@@ -150,8 +152,8 @@ Pi is the only target with **true push**: the extension polls `push.json` and
 injects immediately, without waiting for you to type. Hook-based agents can only
 inject at a lifecycle event, so a pushed pick arrives on your next prompt.
 
-Set `PICKER_AGENT` to match a name in `targets` (defaults to `pi`), then
-`/reload`.
+Set `PICKER_AGENT` to the name this session should answer to (defaults to `pi`),
+then `/reload`.
 
 ## Implementing push for your own agent
 
@@ -162,11 +164,13 @@ do that, the plugin will discover it without any configuration.
 Two things to implement:
 
 **1. Beat a heartbeat while running.** Write
-the file every couple of seconds and remove it on shutdown:
+the file every couple of seconds and remove it on shutdown. A fresh heartbeat
+*means* "I can take a push right now"; a host that can only be read on its next
+prompt must not beat at all:
 
 ```jsonc
 // <stateDir>/listeners/<agent>.json
-{ "agent": "pi", "mode": "push", "pid": 1234, "at": 1790189366374 }
+{ "agent": "pi", "pid": 1234, "at": 1790189366374 }
 ```
 
 `at` is epoch milliseconds. A heartbeat older than **10 seconds** counts as gone,
@@ -181,13 +185,15 @@ The panel writes it when someone presses Push:
 ```
 
 Inject when `once` is greater than the last value you saw, and ignore it when
-`target` names a different agent. In Pi this is `sendMessage({...}, { deliverAs:
-'followUp', triggerTurn: true })`.
+`target` names a different agent. On startup, seed "the last value you saw" from
+`push.json` itself - the file outlives your process, so starting from zero would
+replay a push that was already handled. In Pi this is `sendMessage({...}, {
+deliverAs: 'followUp', triggerTurn: true })`.
 
-The panel renders its routing row from `/__picker/listeners`, so a live heartbeat
-is what makes the green dot and the push button appear. **Push is refused with
-HTTP 409 when no push listener is live** — the server will not write a `push.json`
-that nobody will read.
+The panel renders its π push switch from `/__picker/listeners`: a fresh heartbeat
+is what lights the switch's dot and reveals the push button once you have turned
+the switch on. **Push is refused with HTTP 409 when no listener is live** — the
+server will not write a `push.json` that nobody will read.
 
 ## MCP instead of a hook
 

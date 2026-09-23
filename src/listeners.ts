@@ -11,11 +11,13 @@ import path from 'node:path'
  *
  * The payoff is that the panel can no longer offer a push button that silently
  * does nothing: if no heartbeat is fresh, there is no one to push to.
+ *
+ * A heartbeat therefore *means* "I can take a push right now". An agent that is
+ * only read on its next prompt - a prompt hook, for example - must not beat one,
+ * because that would advertise an injection that cannot happen.
  */
 export interface Listener {
   agent: string
-  /** `push` can be injected into a live session; `queue` is read on the next prompt. */
-  mode: 'push' | 'queue'
   pid?: number
   /** Epoch ms of the last heartbeat. */
   at: number
@@ -47,7 +49,6 @@ export function readListeners(stateDir: string, now = Date.now()): Listener[] {
       const agent = typeof value.agent === 'string' && value.agent ? value.agent : name.replace(/\.json$/, '')
       fresh.push({
         agent,
-        mode: value.mode === 'queue' ? 'queue' : 'push',
         pid: typeof value.pid === 'number' ? value.pid : undefined,
         at,
       })
@@ -63,7 +64,5 @@ export function readListeners(stateDir: string, now = Date.now()): Listener[] {
  * which any live push listener accepts; a named one only matches itself.
  */
 export function hasPushListener(stateDir: string, agent = '', now = Date.now()): boolean {
-  return readListeners(stateDir, now).some(
-    listener => listener.mode === 'push' && (agent === '' || listener.agent === agent),
-  )
+  return readListeners(stateDir, now).some(listener => agent === '' || listener.agent === agent)
 }

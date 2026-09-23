@@ -53,7 +53,6 @@ It supports Vue 3 `.vue` SFCs, `.jsx` and `.tsx` by default.
 picker({
   include: /\.(?:vue|[jt]sx)$/,
   stateDir: '.picker', // where picks are written; false disables; default '.picker'
-  targets: ['pi', 'codex'], // options in the "Send to" row; default [] (broadcast only)
 })
 ```
 
@@ -70,37 +69,44 @@ picker({
    picking other elements. The tray supports checkboxes, batch copy/delete and
    editing each instruction in place.
 6. **Push** (or press `Enter` in the textarea; `Shift+Enter` for a newline) injects
-   the current pick into a session that is listening right now. The button only
-   exists when something is actually listening — see below.
+   the current pick into a session that is **running** right now. The button only
+   exists when a push-capable agent is listening — see below. When the target
+   cannot take a push, `Enter` does what **Copy** does instead.
 
-## Delivery capability comes in four tiers
+## Delivery capability comes in three tiers
 
 The word "push" is easy to abuse, so here is what each tier actually needs:
 
 | Tier | Meaning | Requires | Reachable today |
 |---|---|---|---|
 | **Copy** | goes to the clipboard | nothing | everything |
-| **Queue** | written to `.picker/`, read on the agent's next prompt | the agent has a prompt hook | agents with `picker-hook` installed |
 | **Push** | injected into a **running** session, without waiting for it to speak | the host exposes an injection channel | **Pi only** |
 | **Pull** | the agent asks for it | an MCP client | any MCP client |
 
 The distinction that matters: **push requires the host to offer a way to inject
 from outside and trigger a turn.** Pi does (its extension API's
 `sendMessage(..., { triggerTurn: true })`). Claude Code and Codex hooks only fire
-on lifecycle events, so they have no such entry point — for them "push" really
-means **queued until they next speak**, and you still have to send them a message.
+on lifecycle events, so they have no such entry point — the panel offers them
+**Copy**, and their prompt hook can read `.picker/` on their next prompt instead
+(see [docs/agents.md](./docs/agents.md)). That is a file-level read, not a panel
+push.
 
 So the panel does not lie:
 
-- An agent that beats a heartbeat (`.picker/listeners/<agent>.json`, refreshed
-every 2s) gets a green dot on its route button, and the push button appears,
-labelled "Push to pi".
-- With no heartbeat the push button is **not rendered at all**, so a success toast
-for a push that goes nowhere is impossible.
-- A heartbeat older than 10s (the agent closed) takes the capability away again.
+- Only a host that can inject into a running session beats a heartbeat
+(`.picker/listeners/<agent>.json`, refreshed every 2s). Pi is the only one today,
+and the Claude Code and Codex hooks never beat one — they can never receive a
+push.
+- The **π switch** at the top-right of the prompt box is your own opt-in, kept per
+browser. Push is off until you turn it on, and even then the push button only
+appears while a heartbeat is fresh — so a success toast for a push that goes
+nowhere is impossible.
+- A heartbeat older than 10s (the agent closed) takes the button away again.
 
-Any host that implements "heartbeat plus poll `push.json`" therefore graduates
-from queue to push on its own — no agent names are hardcoded in the plugin.
+Any host that implements "heartbeat plus poll `push.json`" therefore becomes a
+push target on its own — no agent names are hardcoded in the plugin. Conversely,
+an agent that is only read on its next prompt must **not** beat a heartbeat, or
+the panel would promise a push it cannot deliver.
 
 Also: **every action writes the pick into `.picker/`** (Copy, Stash and Push
 alike), so a failed push never loses the pick.
@@ -130,11 +136,12 @@ Pick an element, press **Copy** in the panel, switch to the agent and paste. Tha
 is the recommended path for claude / codex, not a consolation prize:
 
 **Copy**: `Alt`+click → write the request → Copy → switch window → `Ctrl+V` → `Enter`
-**Hook**: `Alt`+click → write the request → pick "Send to" → switch window → type something → `Enter`
+**Hook**: `Alt`+click → write the request → Stash (any panel action writes the pick to `.picker/`) → switch window → type something → `Enter`
 
-Same number of steps. The hook only saves the paste, and costs configuration,
-trust prompts and version fragility — while pasting means you can see exactly
-what you are sending. Pi is the exception: it can genuinely push.
+Same number of steps: the hook saves the paste (Stash never touches the
+clipboard), and costs configuration, trust prompts and version fragility — while
+pasting means you can see exactly what you are sending. Pi is the exception: it
+can genuinely push.
 
 ## Making an agent read it automatically (optional)
 
@@ -160,10 +167,10 @@ given pick once per agent. Each agent keeps its own cursor, so routing a pick to
 `codex` does not consume it for `claude`.
 
 ⚠️ **Read this before wiring it up.** Hooks only fire on lifecycle events, and
-neither Claude Code nor Codex can wake a running session from the outside. So
-"push" here really means **queued until it next speaks** — you still have to send
-the agent a message. Only Pi injects without you typing. Setup, including Codex's
-hook-trust step, is in [docs/agents.md](./docs/agents.md).
+neither Claude Code nor Codex can wake a running session from the outside. The
+pick therefore arrives on your **next** prompt — you still have to send the agent
+a message. Only Pi injects without you typing. Setup, including Codex's hook-trust
+step, is in [docs/agents.md](./docs/agents.md).
 
 **Option 3: MCP** — see the MCP server section below.
 
@@ -183,39 +190,21 @@ Pi listens to `before_agent_start`; run `/reload` (or restart Pi) to load it.
 > without waiting for you to type. Hook-based agents can only inject at a
 > lifecycle event, so a pushed pick arrives on your **next prompt**.
 
-## Multi-agent routing
+## Where picks land
 
-There is no link between the browser and your terminals, so the plugin cannot
-guess which agent a pick is for. Instead you pick the target explicitly: once
-`targets` is configured, the panel shows a "Send to" row, and the pick is written
-to that agent's inbox.
-
-```ts
-picker({ targets: ['pi', 'codex'] }) // panel shows an "All" option plus [pi] [codex]
-```
-
-- "All" (default) → writes only `.picker/last-pick.md`.
-- An agent → writes only `.picker/inbox/<name>.md` (it never pollutes the
-  broadcast snapshot).
-
-Each agent is told to read its own inbox, for example:
-
-> You are codex. When needed, read `.picker/inbox/codex.md` and make the change it asks for.
+The panel has no target picker: every pick is a broadcast. Acting on a pick
+(Copy, Stash or Push) is what writes it:
 
 ```
 .picker/
-├─ picks.jsonl        # full log (each line has targets)
-├─ last-pick.md       # broadcast ("All")
-├─ push.json          # push request (once / target)
-└─ inbox/
-   ├─ pi.md           # latest pick for pi
-   └─ codex.md        # latest pick for codex
+├─ picks.jsonl        # full log, one JSON per line
+├─ last-pick.md       # readable snapshot, "latest wins"
+└─ push.json          # push request (once / target)
 ```
 
-The inbox is "latest wins": two unread picks for the same agent overwrite each
-other. For no-loss delivery, read the full `picks.jsonl` and filter by `targets`.
-Target names are validated against `[a-z0-9_-]` to prevent path traversal, and the
-server only accepts names configured in `targets`.
+Agents that are read on their next prompt (a hook) read `last-pick.md` through
+`picker-hook` — see [docs/agents.md](./docs/agents.md). For no-loss delivery,
+read the full `picks.jsonl`.
 
 ## MCP server
 

@@ -1,7 +1,7 @@
 const rawClientCode = String.raw`
 const PICK_ATTRIBUTE = 'data-picker'
 const HIGHLIGHT_GAP = 5
-const state = { alt: false, selected: null, hovered: null, context: null, stash: [], stashOpen: false, target: '' }
+const state = { alt: false, selected: null, hovered: null, context: null, stash: [], stashOpen: false }
 let stashSeq = 0
 const selectedStash = new Set()
 const runtimeConfig = globalThis.__PICKER_CONFIG__ || {}
@@ -72,15 +72,14 @@ root.innerHTML = \`
     .panel-target { flex:1; min-width:0; display:grid; gap:2px }
     .target-range { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--picker-ink-strong); font:600 13px/1.4 system-ui,sans-serif }
     .target-src { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--picker-muted); font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,'Courier New',monospace }
-    .routing { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:11px }
-    .routing-label { color:var(--picker-muted); font:11px/1.4 system-ui,sans-serif }
-    .route { padding:4px 10px; border:1px solid var(--picker-rule-strong); border-radius:999px; background:var(--picker-surface); color:var(--picker-ink-route); cursor:pointer; font:600 11px/1 system-ui,sans-serif }
-    .route:hover { border-color:var(--picker-accent-border); color:var(--picker-accent-hover) }
-    .route.active { border-color:var(--picker-accent); background:var(--picker-accent); color:var(--picker-on-accent) }
-    .route.live::after { content:''; display:inline-block; width:5px; height:5px; margin-left:5px; border-radius:50%; background:var(--picker-success); vertical-align:middle }
-    .route.active.live::after { background:currentColor }
+    .field { position:relative }
+    .pi-toggle { position:absolute; top:7px; right:7px; display:grid; place-items:center; width:24px; height:24px; padding:0; border:1px solid var(--picker-rule-strong); border-radius:7px; background:var(--picker-surface); color:var(--picker-muted-faint); cursor:pointer }
+    .pi-toggle:hover { border-color:var(--picker-accent-border); color:var(--picker-accent-hover) }
+    .pi-toggle[aria-pressed='true'] { border-color:var(--picker-accent-border); background:var(--picker-accent-tint); color:var(--picker-accent) }
+    .pi-toggle[data-live='true']::after { content:''; position:absolute; top:-3px; right:-3px; width:6px; height:6px; border-radius:50%; background:var(--picker-success); box-shadow:0 0 0 2px var(--picker-surface-2) }
+    .pi-glyph { display:block; width:14px; height:14px }
     .action:disabled { opacity:.5; cursor:not-allowed }
-    textarea { width:100%; min-height:100px; max-height:200px; box-sizing:border-box; resize:vertical; padding:10px; border:1px solid var(--picker-rule-strong); border-radius:10px; outline:none; font:13px/1.55 system-ui,sans-serif; color:var(--picker-ink-strong) }
+    textarea { width:100%; min-height:100px; max-height:200px; box-sizing:border-box; resize:vertical; padding:10px 38px 10px 10px; border:1px solid var(--picker-rule-strong); border-radius:10px; outline:none; font:13px/1.55 system-ui,sans-serif; color:var(--picker-ink-strong) }
     textarea:focus { border-color:var(--picker-accent-soft); box-shadow:0 0 0 3px var(--picker-accent-focus) }
     .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:13px }
     button.action { flex:1; padding:9px 12px; border:0; border-radius:9px; cursor:pointer; background:var(--picker-accent); color:var(--picker-on-accent); font:600 13px/1 system-ui,sans-serif }
@@ -119,9 +118,8 @@ root.innerHTML = \`
   <div class="toast" role="status" aria-live="polite"></div>
   <section class="panel" role="dialog" aria-label="Picker Prompt">
     <div class="header"><div class="panel-target" hidden><span class="target-range"></span><span class="target-src"></span></div><button class="close" type="button" title="关闭">×</button></div>
-    <div class="routing" hidden><span class="routing-label">发送给</span></div>
-    <textarea placeholder="描述你希望 AI 完成的修改…"></textarea>
-    <div class="actions"><button class="action secondary push-once" type="button" title="立即推送到当前目标的会话">推送</button><button class="action secondary stash-now" type="button">暂存</button><button class="action copy" type="button">复制</button></div>
+    <div class="field"><textarea placeholder="描述你希望 AI 完成的修改…"></textarea><button class="pi-toggle" type="button" aria-pressed="false" title="Pi 推送已关闭：点击开启后，可在 agent 运行时立即注入选取"><svg class="pi-glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.4 4.6h11.2M5.4 4.6v7.1M10.6 4.6v7.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></div>
+    <div class="actions"><button class="action secondary push-once" type="button" hidden title="立即推送到当前目标的会话">推送</button><button class="action secondary stash-now" type="button">暂存</button><button class="action copy" type="button">复制</button></div>
   </section>
   <section class="stash-panel" role="dialog" aria-label="暂存夹">
     <div class="header"><span class="title">暂存夹</span><button class="close stash-close" type="button" title="关闭">×</button></div>
@@ -158,37 +156,46 @@ const stashSelectAll = root.querySelector('.stash-select-all')
 const stashClearButton = root.querySelector('.stash-clear')
 const stashCopyButton = root.querySelector('.stash-copy')
 const stashDeleteButton = root.querySelector('.stash-delete')
-const routing = root.querySelector('.routing')
-const agentTargets = Array.isArray(runtimeConfig.targets) ? runtimeConfig.targets : []
-// Agents that can inject into a live session, refreshed from the dev server.
+const piToggle = root.querySelector('.pi-toggle')
+// Heartbeats from agents that are running right now, refreshed from the dev server.
 const listeners = []
-function pushTarget() {
-  return state.target || ''
+// The Pi push switch is an explicit user preference (kept per browser): the panel
+// never advertises a live session on its own. Even when the switch is on, the push
+// button only appears while something is actually listening, so it can never
+// promise a delivery that goes nowhere.
+const PI_PUSH_KEY = 'picker:pi-push'
+function readPiPush() {
+  try { return localStorage.getItem(PI_PUSH_KEY) === '1' } catch { return false }
+}
+let piPush = readPiPush()
+function liveAgentNames() {
+  return listeners.map(item => item.agent).join('、')
 }
 function canPush() {
-  const wanted = pushTarget()
-  return wanted ? listeners.some(item => item.agent === wanted) : listeners.length > 0
+  return piPush && listeners.length > 0
 }
-function pushLabel() {
-  return pushTarget() ? '推送给 ' + pushTarget() : '推送'
-}function syncRouting() {
-  routing.querySelectorAll('.route').forEach(button => {
-    const value = button.dataset.target || ''
-    button.classList.toggle('active', value === state.target)
-    const live = value === '' ? listeners.length > 0 : listeners.some(item => item.agent === value)
-    button.classList.toggle('live', live)
-    button.title = live
-      ? '有 agent 正在监听，可立即推送'
-      : '没有 agent 在监听；选取仍会写入 .picker/，可用复制'
-  })
+function syncPush() {
+  if (piToggle) {
+    piToggle.setAttribute('aria-pressed', piPush ? 'true' : 'false')
+    piToggle.dataset.live = listeners.length > 0 ? 'true' : 'false'
+    piToggle.title = piPush
+      ? (listeners.length > 0 ? 'Pi 推送已开启：可立即注入 ' + liveAgentNames() : 'Pi 推送已开启，但当前没有 agent 在监听')
+      : 'Pi 推送已关闭：点击开启后，可在 agent 运行时立即注入选取'
+  }
   if (pushOnceButton) {
     // Hidden rather than disabled: a disabled button's tooltip is invisible, and
     // every action already writes the pick to .picker/ anyway.
     pushOnceButton.hidden = !canPush()
-    pushOnceButton.textContent = pushTarget() ? '推送给 ' + pushTarget() : '推送'
-    pushOnceButton.title = '立即推送到正在监听的会话'
+    pushOnceButton.textContent = '推送'
+    pushOnceButton.title = listeners.length > 0 ? '立即推送到 ' + liveAgentNames() : '立即推送到正在监听的会话'
   }
 }
+piToggle?.addEventListener('click', () => {
+  piPush = !piPush
+  try { localStorage.setItem(PI_PUSH_KEY, piPush ? '1' : '0') } catch { /* private mode */ }
+  syncPush()
+  if (piPush && !listeners.length) showToast('已开启 Pi 推送；当前没有 agent 在监听')
+})
 async function refreshListeners() {
   try {
     const res = await fetch('/__picker/listeners')
@@ -200,25 +207,10 @@ async function refreshListeners() {
   } catch {
     // The bridge is best-effort; an unreachable server means nobody is listening.
   }
-  syncRouting()
+  syncPush()
   refreshPanel()
 }
 setInterval(refreshListeners, 3000)
-if (agentTargets.length) {
-  routing.hidden = false
-  const addRoute = (value, label) => {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = 'route'
-    button.dataset.target = value
-    button.textContent = label
-    button.addEventListener('click', () => { state.target = value; syncRouting(); record('pick') })
-    routing.appendChild(button)
-  }
-  addRoute('', '全部')
-  agentTargets.forEach(name => addRoute(name, name))
-  syncRouting()
-}
 async function postPush(patch) {
   try {
     const res = await fetch('/__picker/push', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
@@ -231,11 +223,13 @@ async function postPush(patch) {
 async function pushNow() {
   if (!state.context) return
   await record('prompt', textarea.value)
-  const result = await postPush({ once: true, target: pushTarget() })
+  // No routing row any more: a push is a broadcast to whoever is listening.
+  const names = liveAgentNames()
+  const result = await postPush({ once: true, target: '' })
   textarea.value = ''
   if (result.ok) {
     closePanel()
-    showToast(pushTarget() ? '已立即推送给 ' + pushTarget() : '已立即推送给监听中的 agent')
+    showToast(names ? '已立即推送给 ' + names : '已立即推送给监听中的 agent')
     return
   }
   // The pick is already in .picker/, so nothing is lost - say what actually happened.
@@ -247,7 +241,10 @@ pushOnceButton.addEventListener('click', pushNow)
 textarea.addEventListener('keydown', event => {
   if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return
   event.preventDefault()
-  pushNow()
+  // Enter is a shortcut for the action the target can actually take: push when a
+  // push-capable agent is live, otherwise copy - never a push nobody can receive.
+  if (canPush()) pushNow()
+  else copyNow()
 })
 fetch('/__picker/push', { headers: { accept: 'application/json' } })
   .then(response => { if (!response.ok) throw new Error() })
@@ -332,7 +329,7 @@ async function record(kind, instruction) {
     await fetch('/__picker/record', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id: panel.dataset.id, kind, chain: state.context.range, instruction: instruction || '', target: state.target || '' }),
+      body: JSON.stringify({ id: panel.dataset.id, kind, chain: state.context.range, instruction: instruction || '' }),
     })
   } catch {
     // The file bridge is best-effort; never block the UI on it.
@@ -353,7 +350,7 @@ function refreshPanel() {
   stashNowButton.disabled = !has
   pushOnceButton.disabled = !has
   copyButton.disabled = !has
-  syncRouting()
+  syncPush()
 }
 function renderStashList() {
   stashList.replaceChildren()
@@ -485,14 +482,15 @@ stashBtn.addEventListener('click', () => {
   else openStash()
 })
 root.querySelector('.stash-close').addEventListener('click', closeStash)
-copyButton.addEventListener('click', async () => {
+async function copyNow() {
   if (!state.context) return
   const output = composePrompt([state.context], textarea.value)
   await navigator.clipboard.writeText(output)
   await record('prompt', textarea.value)
   textarea.value = ''
   closePanel(); showToast('已保存到剪贴板')
-})
+}
+copyButton.addEventListener('click', copyNow)
 stashNowButton.addEventListener('click', () => {
   if (!state.context) return
   const instruction = textarea.value.trim()
