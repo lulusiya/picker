@@ -40,5 +40,5 @@ First public release.
 - Stale source records are evicted on hot update, so edited files no longer
   resolve to shifted line numbers.
 
-[Unreleased]: https://github.com/lulusiya/vite-plugin-picker/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/lulusiya/vite-plugin-picker/releases/tag/v0.3.0
+[Unreleased]: https://github.com/lulusiya/picker/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/lulusiya/picker/releases/tag/v0.3.0

@@ -44,11 +44,11 @@
   "author": "lihuohuo",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lulusiya/vite-plugin-picker.git"
+    "url": "git+https://github.com/lulusiya/picker.git"
   },
-  "homepage": "https://github.com/lulusiya/vite-plugin-picker#readme",
+  "homepage": "https://github.com/lulusiya/picker#readme",
   "bugs": {
-    "url": "https://github.com/lulusiya/vite-plugin-picker/issues"
+    "url": "https://github.com/lulusiya/picker/issues"
   },
   "engines": {
     "node": ">=18"
