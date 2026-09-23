@@ -8,6 +8,12 @@ coverage
 *.log
 *.pid
 
+# local tooling state
+.hallmark/
+
+# never commit credentials
+.npmrc
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
