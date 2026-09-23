@@ -21,7 +21,36 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
+
+/**
+ * Only the slice of the Pi extension API this file uses. Declaring it locally
+ * keeps this example fully type-checked without pulling the whole agent SDK into
+ * the plugin's devDependencies; the real API satisfies it structurally.
+ */
+export interface PickerContext {
+  cwd: string
+  hasUI: boolean
+  ui: {
+    setStatus(key: string, text: string): void
+    notify(message: string, level: 'info' | 'warn' | 'error'): void
+  }
+}
+
+export interface PickerExtensionApi {
+  on(
+    event: 'session_start' | 'session_shutdown' | 'before_agent_start',
+    handler: (event: unknown, ctx: PickerContext) => unknown,
+  ): void
+  sendMessage(
+    message: { customType: string; content: string; display?: boolean },
+    options?: { deliverAs?: string; triggerTurn?: boolean },
+  ): void
+  registerCommand(
+    name: string,
+    options: { description?: string; handler: (args: string, ctx: PickerContext) => unknown },
+  ): void
+  registerShortcut(shortcut: string, options: { description?: string; handler: (ctx: PickerContext) => unknown }): void
+}
 
 const AGENT = process.env.PICKER_AGENT?.trim() || 'pi'
 const SKIP = new Set(['node_modules', 'dist', 'build', 'coverage'])
@@ -140,8 +169,8 @@ function compose(file: string, body: string): string {
   return `🖱️ Picker 选取（agent=${AGENT}，来源=${label}）\n\n${body}`
 }
 
-export default function (pi: ExtensionAPI) {
-  let currentCtx: ExtensionContext | null = null
+export default function (pi: PickerExtensionApi) {
+  let currentCtx: PickerContext | null = null
   let lastInjected = ''
   let lastOnce = 0
   let timer: ReturnType<typeof setInterval> | null = null
@@ -155,13 +184,13 @@ export default function (pi: ExtensionAPI) {
     return dirs
   }
 
-  const showStatus = (ctx: ExtensionContext): void => {
+  const showStatus = (ctx: PickerContext): void => {
     if (!ctx.hasUI) return
     const dirs = getStateDirs(ctx.cwd)
     ctx.ui.setStatus('picker', dirs.length ? `Picker → ${AGENT}` : `Picker: 未发现 .picker`)
   }
 
-  const deliver = (ctx: ExtensionContext, candidate: Candidate, note: string): void => {
+  const deliver = (ctx: PickerContext, candidate: Candidate, note: string): void => {
     const content = readCandidate(candidate.file)
     if (!content) return
     lastInjected = keyOf(candidate)
@@ -172,7 +201,7 @@ export default function (pi: ExtensionAPI) {
     )
   }
 
-  const manualPush = (ctx: ExtensionContext): void => {
+  const manualPush = (ctx: PickerContext): void => {
     showStatus(ctx)
     const candidate = latestCandidate(getStateDirs(ctx.cwd))
     if (!candidate) {
