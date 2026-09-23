@@ -118,7 +118,7 @@ root.innerHTML = \`
     <div class="header"><div class="panel-target" hidden><span class="target-range"></span><span class="target-src"></span></div><button class="close" type="button" title="关闭">×</button></div>
     <div class="routing" hidden><span class="routing-label">发送给</span></div>
     <textarea placeholder="描述你希望 AI 完成的修改…"></textarea>
-    <div class="actions"><button class="action secondary open-editor" type="button" title="在编辑器中打开源码">编辑器</button><button class="action secondary push-once" type="button" title="立即推送到当前目标的会话">推送</button><button class="action secondary stash-now" type="button">暂存</button><button class="action copy" type="button">复制</button></div>
+    <div class="actions"><button class="action secondary push-once" type="button" title="立即推送到当前目标的会话">推送</button><button class="action secondary stash-now" type="button">暂存</button><button class="action copy" type="button">复制</button></div>
   </section>
   <section class="stash-panel" role="dialog" aria-label="暂存夹">
     <div class="header"><span class="title">暂存夹</span><button class="close stash-close" type="button" title="关闭">×</button></div>
@@ -142,7 +142,6 @@ const stashPanel = root.querySelector('.stash-panel')
 const textarea = root.querySelector('textarea')
 const copyButton = root.querySelector('.copy')
 const stashNowButton = root.querySelector('.stash-now')
-const openEditorButton = root.querySelector('.open-editor')
 const statusText = root.querySelector('.status span:last-child')
 const toast = root.querySelector('.toast')
 const stashBtn = root.querySelector('.stash-btn')
@@ -156,7 +155,6 @@ const stashSelectAll = root.querySelector('.stash-select-all')
 const stashClearButton = root.querySelector('.stash-clear')
 const stashCopyButton = root.querySelector('.stash-copy')
 const stashDeleteButton = root.querySelector('.stash-delete')
-if (runtimeConfig.openInEditor === false) openEditorButton.hidden = true
 const routing = root.querySelector('.routing')
 const agentTargets = Array.isArray(runtimeConfig.targets) ? runtimeConfig.targets : []
 function syncRouting() {
@@ -303,7 +301,6 @@ function refreshPanel() {
   }
   stashNowButton.disabled = !has
   pushOnceButton.disabled = !has
-  openEditorButton.disabled = !has
   copyButton.disabled = !has
 }
 function renderStashList() {
@@ -442,12 +439,6 @@ copyButton.addEventListener('click', async () => {
   await record('prompt', textarea.value)
   textarea.value = ''
   closePanel(); showToast('已保存到剪贴板')
-})
-openEditorButton.addEventListener('click', () => {
-  if (!state.context) return
-  fetch('/__open-in-editor?file=' + encodeURIComponent(state.context.src))
-    .then(() => showToast('已在编辑器中打开'))
-    .catch(() => showToast('无法打开编辑器'))
 })
 stashNowButton.addEventListener('click', () => {
   if (!state.context) return

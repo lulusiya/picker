@@ -7,14 +7,6 @@ import { buildPickEntry, defaultPushControl, normalizeTargets, parseEntries, par
 import { instrumentJsx, instrumentVueSfc, type SourceRecord } from './transform'
 
 export interface PickerOptions {
-  /**
-   * Show the "open in editor" action in the pick panel. The editor is detected
-   * by Vite's built-in `/__open-in-editor` endpoint, which honours
-   * `LAUNCH_EDITOR`, `VISUAL` and `EDITOR` and otherwise scans running editor
-   * processes (VS Code, Cursor, WebStorm, …). Set to false to hide the action.
-   * Defaults to true.
-   */
-  openInEditor?: boolean
   /** Files to transform. Defaults to JSX, TSX and Vue SFC files. */
   include?: RegExp
   /**
@@ -37,7 +29,6 @@ const CLIENT_PATH = '/__picker/client.js'
 /** Builds the client module with the runtime config the browser needs. */
 export function createClientScript(options: PickerOptions = {}): string {
   const config = {
-    openInEditor: options.openInEditor !== false,
     targets: normalizeTargets(options.targets),
   }
   return 'globalThis.__PICKER_CONFIG__ = ' + JSON.stringify(config) + '\n' + clientCode

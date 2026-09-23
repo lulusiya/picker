@@ -43,11 +43,10 @@ export default defineConfig({
 })
 ```
 
-插件仅在 Vite dev server 中运行，不会进入生产构建。默认支持 Vue 3 `.vue` SFC、`.jsx` 和 `.tsx`。选中元素后可在面板点“编辑器”，编辑器由 Vite 内置的 `/__open-in-editor` 自动识别（依次读取 `LAUNCH_EDITOR`、`VISUAL`、`EDITOR`，否则扫描正在运行的编辑器进程）。
+插件仅在 Vite dev server 中运行，不会进入生产构建。默认支持 Vue 3 `.vue` SFC、`.jsx` 和 `.tsx`。
 
 ```ts
 picker({
-  openInEditor: false, // 隐藏“打开编辑器”按钮；默认 true
   include: /\.(?:vue|[jt]sx)$/,
   stateDir: '.picker', // 落盘目录；false 关闭；默认 '.picker'
   targets: ['pi', 'codex'], // “发送给”面板选项；默认 []（仅广播）
@@ -61,8 +60,7 @@ picker({
 3. 保持 `Alt` 按下并点击元素。
 4. 在元素右下方的小卡片中填写修改要求，点击“复制”把 Prompt 与带行列号的 `src`、表示组件层级关系的 `range` 写入剪贴板。
 5. 点“暂存”可把当前元素与要求存进右下角的“暂存夹”，继续选择其他元素；暂存夹支持勾选后批量复制或删除，也可原地编辑每条要求。
-6. 点“编辑器”可直接跳到该元素的源码位置。
-7. 点“推送”（或在输入框按 `Enter`，`Shift+Enter` 换行）可把当前选取与修改要求立即推送给所选目标的会话。
+6. 点“推送”（或在输入框按 `Enter`，`Shift+Enter` 换行）可把当前选取与修改要求立即推送给所选目标的会话。
 
 ## 交给 AI（文件桥）
 
@@ -163,7 +161,7 @@ iframe 和 closed Shadow DOM 暂未支持。Vue 动态组件自身不会被注�
 
 ## 安全性
 
-浏览器 DOM 只包含短定位 ID，绝对路径只在本地 Vite 服务内按 ID 查询。打开编辑器复用 Vite 内置的 `/__open-in-editor` 端点，仅限本地开发服务器使用。
+浏览器 DOM 只包含短定位 ID，绝对路径只在本地 Vite 服务内按 ID 查询。
 
 `/__picker/*` 端点没有鉴权，请把 dev server 绑定在 localhost；详见 [SECURITY.md](./SECURITY.md)。
 

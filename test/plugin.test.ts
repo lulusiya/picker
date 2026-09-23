@@ -8,9 +8,8 @@ import { createServer } from 'vite'
 import picker, { createClientScript } from '../src/index'
 
 describe('Vite plugin HTML injection', () => {
-  it('injects the open-in-editor preference into the client script', () => {
-    expect(createClientScript()).toContain('globalThis.__PICKER_CONFIG__ = {"openInEditor":true,"targets":[]}')
-    expect(createClientScript({ openInEditor: false })).toContain('"openInEditor":false')
+  it('injects the runtime config into the client script', () => {
+    expect(createClientScript()).toContain('globalThis.__PICKER_CONFIG__ = {"targets":[]}')
     expect(createClientScript({ targets: ['codex', 'bad name', 'codex'] })).toContain('"targets":["codex"]')
   })
 
@@ -43,12 +42,12 @@ describe('Vite plugin HTML injection', () => {
     }
   })
 
-  it('serves the client with the config and mounts Vite open-in-editor', async () => {
+  it('serves the client module with the runtime config', async () => {
     const server = await createServer({
       configFile: false,
       logLevel: 'silent',
       server: { middlewareMode: true },
-      plugins: [picker({ openInEditor: false, stateDir: false })],
+      plugins: [picker({ targets: ['codex'], stateDir: false })],
     })
     const httpServer = createHttpServer(server.middlewares)
     await new Promise<void>(resolve => httpServer.listen(0, resolve))
@@ -56,10 +55,7 @@ describe('Vite plugin HTML injection', () => {
       const { port } = httpServer.address() as AddressInfo
       const client = await fetch(`http://127.0.0.1:${port}/__picker/client.js`)
       expect(client.status).toBe(200)
-      expect(await client.text()).toContain('"openInEditor":false')
-
-      const open = await fetch(`http://127.0.0.1:${port}/__open-in-editor`)
-      expect(open.status).not.toBe(404)
+      expect(await client.text()).toContain('"targets":["codex"]')
     } finally {
       await new Promise<void>(resolve => httpServer.close(() => resolve()))
       await server.close()

@@ -26,6 +26,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `demo/.hallmark/` is no longer tracked, and `.npmrc` is ignored so a registry
   token cannot be committed by accident.
 
+### Removed
+
+- The "open in editor" panel action and its `openInEditor` option. It reached
+  out to Vite's `/__open-in-editor`, which starts an editor process on your
+  machine from a browser click - a side effect a dev overlay should not have.
+  Existing configs that still pass `openInEditor` keep working; the option is
+  simply ignored.
+
 ### Fixed
 
 - The CommonJS bundle could not be required at all: esbuild compiled

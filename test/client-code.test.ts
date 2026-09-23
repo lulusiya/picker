@@ -88,11 +88,9 @@ describe('client runtime', () => {
     expect(clientCode).toContain('event.stopImmediatePropagation()')
   })
 
-  it('opens the picked source in the editor through Vite', () => {
-    expect(clientCode).toContain('class="action secondary open-editor"')
-    expect(clientCode).toContain('/__open-in-editor?file=')
-    expect(clientCode).toContain("encodeURIComponent(state.context.src)")
-    expect(clientCode).not.toContain('--goto')
+  it('has no open-in-editor action', () => {
+    expect(clientCode).not.toContain('open-editor')
+    expect(clientCode).not.toContain('__open-in-editor')
   })
 
   it('routes picks to a configured agent inbox', () => {

@@ -47,14 +47,10 @@ export default defineConfig({
 ```
 
 The plugin only runs in the Vite dev server and never enters a production build.
-It supports Vue 3 `.vue` SFCs, `.jsx` and `.tsx` by default. After picking an
-element you can press **Editor** to jump to its source; the editor is
-auto-detected by Vite's built-in `/__open-in-editor` (it reads `LAUNCH_EDITOR`,
-`VISUAL` then `EDITOR`, and otherwise scans running editor processes).
+It supports Vue 3 `.vue` SFCs, `.jsx` and `.tsx` by default.
 
 ```ts
 picker({
-  openInEditor: false, // hide the "Editor" button; default true
   include: /\.(?:vue|[jt]sx)$/,
   stateDir: '.picker', // where picks are written; false disables; default '.picker'
   targets: ['pi', 'codex'], // options in the "Send to" row; default [] (broadcast only)
@@ -73,8 +69,7 @@ picker({
 5. **Stash** saves the element and instruction into the stash tray; you can keep
    picking other elements. The tray supports checkboxes, batch copy/delete and
    editing each instruction in place.
-6. **Editor** jumps to the element's source.
-7. **Push** (or press `Enter` in the textarea; `Shift+Enter` for a newline) sends
+6. **Push** (or press `Enter` in the textarea; `Shift+Enter` for a newline) sends
    the current pick and instruction to the selected target's session immediately.
 
 ## Handing it to an AI (file bridge)
@@ -205,8 +200,7 @@ the roadmap.
 ## Security
 
 The browser DOM only contains short locator ids, and absolute paths are resolved
-on the local Vite server by id. Opening the editor reuses Vite's built-in
-`/__open-in-editor` endpoint, which is meant for the local dev server only.
+on the local Vite server by id.
 
 The `/__picker/*` endpoints are unauthenticated. Keep the dev server bound to
 localhost; see [SECURITY.md](./SECURITY.md) for details.
