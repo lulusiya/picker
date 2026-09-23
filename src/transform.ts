@@ -1,11 +1,39 @@
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { parse } from '@babel/parser'
 import traverseModule from '@babel/traverse'
-import { parse as parseVueTemplate } from '@vue/compiler-dom'
-import { parse as parseVueSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 
 const traverse = (traverseModule as unknown as { default?: typeof traverseModule }).default ?? traverseModule
+const nodeRequire = createRequire(import.meta.url)
+
+interface VueCompilers {
+  parseSfc: typeof import('@vue/compiler-sfc').parse
+  parseTemplate: typeof import('@vue/compiler-dom').parse
+}
+
+let vueCompilers: VueCompilers | undefined
+
+/**
+ * The Vue compilers are around 3 MB and are only needed for `.vue` files, so they
+ * are required on first use instead of at import time. A React-only dev server
+ * never pays the ~75 ms it costs to parse them.
+ */
+function loadVueCompilers(): VueCompilers {
+  if (!vueCompilers) {
+    try {
+      const sfc: typeof import('@vue/compiler-sfc') = nodeRequire('@vue/compiler-sfc')
+      const dom: typeof import('@vue/compiler-dom') = nodeRequire('@vue/compiler-dom')
+      vueCompilers = { parseSfc: sfc.parse, parseTemplate: dom.parse }
+    } catch (cause) {
+      throw new Error(
+        'vite-plugin-picker needs @vue/compiler-sfc to instrument .vue files. Install it with: npm i -D @vue/compiler-sfc',
+        { cause },
+      )
+    }
+  }
+  return vueCompilers
+}
 
 /**
  * Vite module ids are slash-separated while `path.resolve` returns native
@@ -44,12 +72,20 @@ function componentName(path: string): string | undefined {
   return undefined
 }
 
+/** Adds source locators to native elements in JSX/TSX. Returns null when the
+ * source is not parseable as JSX, so callers never see a syntax error. */
 export function instrumentJsx(code: string, file: string): TransformResult | null {
-  const ast = parse(code, {
-    sourceType: 'module',
-    sourceFilename: file,
-    plugins: ['jsx', 'typescript', 'decorators-legacy', 'classProperties', 'importAttributes'],
-  })
+  let ast: ReturnType<typeof parse>
+  try {
+    ast = parse(code, {
+      sourceType: 'module',
+      sourceFilename: file,
+      plugins: ['jsx', 'typescript', 'decorators-legacy', 'classProperties', 'importAttributes'],
+    })
+  } catch {
+    // Not JSX/TSX, so there is nothing to instrument (a Svelte or Astro file).
+    return null
+  }
   const magic = new MagicString(code)
   const records = new Map<string, SourceRecord>()
   const fileHash = createHash('sha1').update(file).digest('hex').slice(0, 8)
@@ -99,13 +135,27 @@ function offsetLocation(code: string, offset: number): { line: number; column: n
   return { line: lines.length, column: (lines.at(-1)?.length ?? 0) + 1 }
 }
 
+/** Parses a component template, returning null when the source is not a valid
+ * SFC: a parse error and a missing `<template>` are the same "nothing to do". */
+function parseSfcTemplate(code: string, file: string) {
+  // Outside the try: a missing dependency must surface, not look like bad source.
+  const { parseSfc, parseTemplate } = loadVueCompilers()
+  try {
+    const { descriptor, errors } = parseSfc(code, { filename: file })
+    if (errors.length || !descriptor.template) return null
+    const template = descriptor.template
+    return { template, ast: parseTemplate(template.content, { comments: true }) }
+  } catch {
+    return null
+  }
+}
+
 /** Adds source locators to native elements in a Vue 3 SFC template. */
 export function instrumentVueSfc(code: string, file: string): TransformResult | null {
-  const { descriptor, errors } = parseVueSfc(code, { filename: file })
-  if (errors.length || !descriptor.template) return null
+  const parsed = parseSfcTemplate(code, file)
+  if (!parsed) return null
+  const { template, ast } = parsed
 
-  const template = descriptor.template
-  const ast = parseVueTemplate(template.content, { comments: true })
   const magic = new MagicString(code)
   const records = new Map<string, SourceRecord>()
   const fileHash = createHash('sha1').update(file).digest('hex').slice(0, 8)

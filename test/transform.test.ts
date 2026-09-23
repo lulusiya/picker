@@ -17,6 +17,14 @@ describe('instrumentJsx', () => {
     const result = instrumentJsx('const App = () => <div data-picker="custom" />', 'App.tsx')
     expect(result).toBeNull()
   })
+
+  // The declared return type is `TransformResult | null`, so an unparseable
+  // source has to come back as null rather than as a thrown syntax error.
+  it('returns null instead of throwing on sources that are not JSX', () => {
+    const svelte = '<script>\n  let n = 0\n</script>\n\n<button on:click={() => n++}>{n}</button>\n'
+    expect(() => instrumentJsx(svelte, 'Counter.svelte')).not.toThrow()
+    expect(instrumentJsx(svelte, 'Counter.svelte')).toBeNull()
+  })
 })
 
 describe('instrumentVueSfc', () => {
@@ -51,5 +59,12 @@ describe('instrumentVueSfc', () => {
     expect(componentOf('C:\\project\\src\\UserCard.vue')).toBe('UserCard')
     expect(componentOf('/home/picker/src/UserCard.vue')).toBe('UserCard')
     expect(componentOf('UserCard.vue')).toBe('UserCard')
+  })
+
+  it('returns null instead of throwing on sources that are not Vue SFCs', () => {
+    const astro = '---\nconst title = 1\n---\n\n<div>{title}</div>\n'
+    expect(() => instrumentVueSfc(astro, 'Page.astro')).not.toThrow()
+    expect(instrumentVueSfc(astro, 'Page.astro')).toBeNull()
+    expect(instrumentVueSfc('<script setup>const a = 1</script>', 'NoTemplate.vue')).toBeNull()
   })
 })
