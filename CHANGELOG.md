@@ -6,6 +6,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-24
+
+### Added
+
+- `npm run test:dist` smoke-tests the built entry points in both module formats;
+  CI now runs it after the build.
+- A recorded demo GIF and a social preview image under `docs/`.
+
+### Changed
+
+- The Vue compilers are required on first use instead of at import time, which
+  takes about 55 ms off dev-server start for projects that never load a `.vue`
+  file.
+- The bundled demo is a realistic console UI instead of a self-labelled
+  verification harness.
+- `bin.picker-mcp` is `dist/mcp.js` rather than `./dist/mcp.js`, which removes a
+  warning on every publish.
+- `demo/.hallmark/` is no longer tracked, and `.npmrc` is ignored so a registry
+  token cannot be committed by accident.
+
+### Fixed
+
+- The CommonJS bundle could not be required at all: esbuild compiled
+  `import.meta.url` to `undefined` in the CJS output, so creating the require
+  function threw before the plugin was loaded. The build now passes `--shims`.
+- `instrumentJsx` and `instrumentVueSfc` threw on sources they could not parse,
+  such as Svelte or Astro files, even though both declare `TransformResult | null`.
+  They now return `null`.
+
 ## [0.3.0] - 2026-09-23
 
 First public release.
@@ -40,5 +69,6 @@ First public release.
 - Stale source records are evicted on hot update, so edited files no longer
   resolve to shifted line numbers.
 
-[Unreleased]: https://github.com/lulusiya/picker/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/lulusiya/picker/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/lulusiya/picker/releases/tag/v0.4.0
 [0.3.0]: https://github.com/lulusiya/picker/releases/tag/v0.3.0
