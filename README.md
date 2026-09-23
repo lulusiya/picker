@@ -1,5 +1,10 @@
 # vite-plugin-picker
 
+[![CI](https://github.com/lulusiya/picker/actions/workflows/ci.yml/badge.svg)](https://github.com/lulusiya/picker/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/vite-plugin-picker.svg)](https://www.npmjs.com/package/vite-plugin-picker)
+[![node](https://img.shields.io/node/v/vite-plugin-picker.svg)](https://www.npmjs.com/package/vite-plugin-picker)
+[![license](https://img.shields.io/github/license/lulusiya/picker.svg)](./LICENSE)
+
 **简体中文** | [English](./README.en.md)
 
 在 Vue 3、React 或 Preact 的 Vite 开发页面中按住 `Alt` 移动鼠标，高亮对应 DOM；按住 `Alt` 点击后显示源码绝对路径、行列、组件名和 DOM 层级，并生成可直接交给 AI 的提示词。

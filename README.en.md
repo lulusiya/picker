@@ -1,5 +1,10 @@
 # vite-plugin-picker
 
+[![CI](https://github.com/lulusiya/picker/actions/workflows/ci.yml/badge.svg)](https://github.com/lulusiya/picker/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/vite-plugin-picker.svg)](https://www.npmjs.com/package/vite-plugin-picker)
+[![node](https://img.shields.io/node/v/vite-plugin-picker.svg)](https://www.npmjs.com/package/vite-plugin-picker)
+[![license](https://img.shields.io/github/license/lulusiya/picker.svg)](./LICENSE)
+
 **English** | [简体中文](./README.md)
 
 Hold `Alt` and move the mouse over a page in a Vue 3, React or Preact Vite app
