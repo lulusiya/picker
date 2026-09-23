@@ -100,21 +100,36 @@ The file bridge is passive, so the agent side has to read it. There are two ways
 > Read `.picker/inbox/pi.md` (or `.picker/last-pick.md`) and make the change it asks for.
 
 **2. Automatic injection (recommended)** — install a hook that reads it when you
-submit a prompt. This repo ships one for Pi: `.pi/extensions/picker-inbox.ts`. It
-listens to `before_agent_start` and injects the newest inbox/broadcast snapshot,
-without repeating while the file is unchanged. Run `/reload` (or restart Pi) to
-load it.
+submit a prompt. The package ships `picker-hook`, which works with any agent that
+has a prompt hook:
 
-It supports two delivery modes:
+```bash
+picker-hook --agent claude                # plain text; Claude Code adds it to the context
+picker-hook --agent codex                 # Codex's UserPromptSubmit takes plain text too
+picker-hook --agent codex --format codex  # or the explicit hookSpecificOutput JSON
+```
+
+It **always exits 0** (a non-zero exit would reject the prompt in Claude Code and
+block it in Codex), prints **nothing** when there is nothing new, and delivers a
+given pick once per agent. Each agent keeps its own cursor, so routing a pick to
+`codex` does not consume it for `claude`.
+
+**Full setup for Claude Code, Codex, Pi and MCP — including Codex's hook-trust
+step — is in [docs/agents.md](./docs/agents.md).**
+
+Pi also ships a bundled extension, `.pi/extensions/picker-inbox.ts`, which
+supports real push:
 
 | Mode | Trigger | Behaviour |
 |---|---|---|
 | Pull | You send Pi a message | Inject the newest pick (default) |
 | Push | Browser **Push** / `Enter`, or Pi `ctrl+alt+p` / `/picker` | Inject the current pick immediately |
 
-Other agents work the same way — for example Claude Code via a `UserPromptSubmit`
-hook, or Codex via `AGENTS.md` telling it to read `.picker/inbox/codex.md` before
-starting. Or just use the MCP server below.
+Pi listens to `before_agent_start`; run `/reload` (or restart Pi) to load it.
+
+> The difference matters: Pi is **real push** — it polls `push.json` and injects
+> without waiting for you to type. Hook-based agents can only inject at a
+> lifecycle event, so a pushed pick arrives on your **next prompt**.
 
 ## Multi-agent routing
 

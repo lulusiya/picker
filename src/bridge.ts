@@ -54,6 +54,55 @@ export function readPicks(options: ReadPicksOptions): PickEntry[] {
   return picks.filter(entry => matchesAgent(entry, options.agent)).sort((a, b) => a.time - b.time || a.seq - b.seq)
 }
 
+/** A rendered pick snapshot that an agent-side hook can deliver. */
+export interface Snapshot {
+  file: string
+  stateDir: string
+  mtimeMs: number
+}
+
+/**
+ * Resolves the `.picker` directories that belong to the caller. The local
+ * directory wins so that a hook running in a monorepo root still finds the state
+ * of the package it is sitting in; only then does it walk upwards.
+ */
+export function discoverStateDirs(start: string, maxUp = 5): string[] {
+  const from = path.resolve(start)
+  const local = findStateDirs(from)
+  if (local.length) return local
+  let dir = from
+  for (let i = 0; i < maxUp; i++) {
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+    const found = findStateDirs(dir)
+    if (found.length) return found
+  }
+  return []
+}
+
+/** Newest snapshot for an agent: its own inbox, falling back to the broadcast file. */
+export function latestSnapshot(stateDirs: string[], agent?: string): Snapshot | null {
+  let best: Snapshot | null = null
+  for (const stateDir of stateDirs) {
+    const candidates = [
+      ...(agent ? [path.join(stateDir, 'inbox', `${agent}.md`)] : []),
+      path.join(stateDir, 'last-pick.md'),
+    ]
+    for (const file of candidates) {
+      try {
+        const stat = fs.statSync(file)
+        if (stat.isFile() && (!best || stat.mtimeMs > best.mtimeMs)) {
+          best = { file, stateDir, mtimeMs: stat.mtimeMs }
+        }
+      } catch {
+        // Not written yet.
+      }
+    }
+  }
+  return best
+}
+
 /** Renders a pick as an AI-friendly block. */
 export function formatPick(entry: PickEntry): string {
   const lines = [

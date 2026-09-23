@@ -83,16 +83,28 @@ picker({
 
 > 读一下 `.picker/inbox/pi.md`（或 `.picker/last-pick.md`），按里面的修改要求改代码。
 
-**2. 自动注入（推荐）**——给 agent 装一个钩子，在提交提示时自动读入。本仓库为 Pi 内置了一个扩展：`.pi/extensions/picker-inbox.ts`。它监听 `before_agent_start`，自动把最新一条收件箱/广播快照注入对话；文件没变就不重复注入。装好后用 `/reload`（或重启 Pi）加载。
+**2. 自动注入（推荐）**——给 agent 装一个钩子，在提交提示时自动读入。包自带 `picker-hook`，任何有 prompt 钩子的 agent 都能用：
 
-它支持两种投递方式：
+```bash
+picker-hook --agent claude              # 输出纯文本，Claude Code 会加入上下文
+picker-hook --agent codex               # Codex 的 UserPromptSubmit 同样接受纯文本
+picker-hook --agent codex --format codex  # 或者用显式的 hookSpecificOutput JSON
+```
+
+它保证 **永远以 0 退出**（非 0 会直接拒绝用户在 Claude Code / Codex 里的提示），没有新内容时**什么都不输出**，同一条选取每个 agent 只投递一次。每个 agent 有独立游标，路由给 `codex` 不会消耗掉 `claude` 的那份。
+
+**完整配置（Claude Code / Codex / Pi / MCP，含 Codex 的钩子信任步骤）见 [docs/agents.md](./docs/agents.md)。**
+
+Pi 另外内置了一个扩展 `.pi/extensions/picker-inbox.ts`，支持真正的推送：
 
 | 方式 | 触发 | 行为 |
 |---|---|---|
 | 拉取 | 你给 Pi 发消息 | 注入最新一条（默认） |
 | 推送 | 浏览器点“推送” / 按 `Enter`，或 Pi 按 `ctrl+alt+p` / 输入 `/picker` | 立即注入当前选取 |
 
-其他 agent 同理，例如 Claude Code 用 `UserPromptSubmit` hook、Codex 用 `AGENTS.md` 指示它在动手前先读 `.picker/inbox/codex.md`；或者直接用下面的 MCP。
+Pi 监听 `before_agent_start`，装好后用 `/reload`（或重启 Pi）加载。
+
+> 区别在于：Pi 是**真推送**（轮询 `push.json`，不等你打字就注入）；钩子型 agent 只能在生命周期事件上注入，所以推送的选取会在你**下一次提交提示时**到达。
 
 ## 多 agent 路由
 

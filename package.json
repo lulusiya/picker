@@ -14,6 +14,7 @@
     }
   },
   "bin": {
+    "picker-hook": "dist/hook.js",
     "picker-mcp": "dist/mcp.js"
   },
   "files": [
@@ -23,7 +24,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/mcp.ts --format esm,cjs --dts --clean --shims",
+    "build": "tsup src/index.ts src/mcp.ts src/hook.ts --format esm,cjs --dts --clean --shims",
     "test": "vitest run --pool=threads --poolOptions.threads.singleThread",
     "test:dist": "node scripts/verify-dist.mjs",
     "typecheck": "tsc --noEmit",

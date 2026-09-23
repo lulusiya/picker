@@ -10,6 +10,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `picker-hook`, a hook command that turns the passive file bridge into prompt
+  context for Claude Code and Codex. It never exits non-zero (a non-zero exit
+  rejects the prompt in Claude Code and blocks it in Codex), stays silent when
+  there is nothing new, and keeps per-agent delivery state so routing a pick to
+  one agent does not consume it for another.
+- `docs/agents.md`, covering setup for Claude Code, Codex, Pi and MCP.
 - `npm run test:dist` smoke-tests the built entry points in both module formats;
   CI now runs it after the build.
 - A recorded demo GIF and a social preview image under `docs/`.

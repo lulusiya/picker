@@ -43,6 +43,17 @@ async function connect(agent?: string) {
 }
 
 describe('picker MCP server', () => {
+  it('reports the same version as the package', async () => {
+    const pkg = JSON.parse(await fsp.readFile(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }
+    const { server, client } = await connect('codex')
+    try {
+      expect(client.getServerVersion()?.version).toBe(pkg.version)
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  })
+
   it('lists tools and serves picks, advancing a per-session cursor', async () => {
     await writePicks([
       entry({ seq: 1, time: 10, instruction: 'broadcast edit', kind: 'prompt' }),
