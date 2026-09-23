@@ -1,79 +1,44 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import TargetCard from './components/TargetCard.vue'
+import AppSidebar from './components/AppSidebar.vue'
+import DeployTable from './components/DeployTable.vue'
+import StatCard from './components/StatCard.vue'
 
-const helpDialog = ref<HTMLDialogElement | null>(null)
-
-function openHelp() {
-  helpDialog.value?.showModal()
-}
-
-function handleShortcut(event: KeyboardEvent) {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-    event.preventDefault()
-    openHelp()
-  }
-}
-
-onMounted(() => window.addEventListener('keydown', handleShortcut))
-onBeforeUnmount(() => window.removeEventListener('keydown', handleShortcut))
+const stats = [
+  { label: 'Requests per minute', value: '12,480', delta: '8.2%', trend: 'up' },
+  { label: 'p95 latency', value: '184 ms', delta: '12 ms', trend: 'up' },
+  { label: 'Error rate', value: '0.12%', delta: '0.03%', trend: 'down' },
+] as const
 </script>
 
 <template>
-  <header class="site-header">
-    <a class="brand" href="#playground">Picker / Demo</a>
-    <button class="command" type="button" aria-label="打开操作说明" @click="openHelp">
-      <span>操作说明</span><kbd>Ctrl K</kbd>
-    </button>
-  </header>
+  <div class="shell">
+    <AppSidebar />
 
-  <main id="playground">
-    <section class="intro">
-      <p class="intro__status"><span></span>等待选取</p>
-      <h1>验证元素定位，<br />不离开当前页面。</h1>
-      <p class="intro__copy">
-        按住 Alt 并点击下面任意元素。确认弹窗中的提示词可以组合源码位置与组件层级。
-      </p>
-    </section>
+    <div class="column">
+      <header class="topbar">
+        <div class="crumbs">
+          <span>acme</span>
+          <span aria-hidden="true">/</span>
+          <strong>Overview</strong>
+        </div>
+        <div class="topbar__spacer"></div>
+        <button class="btn" type="button">Docs</button>
+        <button class="btn btn--primary" type="button">New deploy</button>
+        <span class="avatar" title="lihuohuo">LH</span>
+      </header>
 
-    <section class="playground" aria-labelledby="targets-title">
-      <div class="playground__head">
-        <h2 id="targets-title">选取目标</h2>
-        <p>两个 Vue 组件实例，内部包含不同层级的原生 DOM。</p>
-      </div>
-      <div class="target-grid">
-        <TargetCard
-          title="Source Location"
-          description="选择标题、段落或按钮，检查 src 是否包含绝对路径与准确行列。"
-          tone="source"
-        />
-        <TargetCard
-          title="Component Range"
-          description="选择卡片内部元素，检查 range 是否显示 App > TargetCard。"
-          tone="range"
-        />
-      </div>
-    </section>
+      <main class="content">
+        <div class="page-head">
+          <h1>Overview</h1>
+          <p>Production is healthy across 3 regions. Last incident 14 days ago.</p>
+        </div>
 
-    <section class="checklist" aria-labelledby="checklist-title">
-      <h2 id="checklist-title">手动验收</h2>
-      <ol>
-        <li><span>01</span>Alt 点击后，移动鼠标不改变已选目标。</li>
-        <li><span>02</span>点击弹窗外部，弹窗与高亮同时消失。</li>
-        <li><span>03</span>点击复制，底部提示“已保存到剪贴板”。</li>
-      </ol>
-    </section>
-  </main>
+        <div class="stats">
+          <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+        </div>
 
-  <footer>
-    <p>Picker Vue 3 integration · local package · development only</p>
-  </footer>
-
-  <dialog ref="helpDialog" @click.self="helpDialog?.close()">
-    <div class="dialog__content">
-      <h2>操作说明</h2>
-      <p>按住 Alt，将鼠标移到目标元素并点击。输入修改要求后选择复制或暂存。</p>
-      <button type="button" @click="helpDialog?.close()">关闭</button>
+        <DeployTable />
+      </main>
     </div>
-  </dialog>
+  </div>
 </template>

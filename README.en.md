@@ -12,6 +12,8 @@ to highlight the DOM element underneath. Hold `Alt` and click to see the
 absolute source path, line/column, component name and component chain — and get
 a prompt you can hand straight to an AI agent.
 
+![Hold `Alt` to highlight an element, `Alt`-click to get its source location and component chain](./docs/demo.gif)
+
 ## Install
 
 ```bash

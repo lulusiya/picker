@@ -1,44 +1,37 @@
 :root {
-  --color-paper: oklch(97% 0.008 250);
-  --color-paper-2: oklch(94% 0.014 250);
-  --color-surface: oklch(99% 0.004 250);
-  --color-ink: oklch(23% 0.02 260);
-  --color-muted: oklch(48% 0.02 260);
-  --color-rule: oklch(83% 0.02 250);
-  --color-rule-strong: oklch(66% 0.03 255);
-  --color-accent: oklch(55% 0.24 263);
-  --color-accent-soft: oklch(91% 0.05 255);
-  --color-accent-ink: oklch(98% 0.006 250);
-  --color-focus: oklch(50% 0.22 263);
-  --color-success: oklch(49% 0.13 150);
-  --color-overlay: oklch(18% 0.02 260 / 0.68);
+  /* Deliberately colourless: the picker highlight is the only saturated blue on
+   * screen, so it stays unmistakable in screenshots and screen recordings. */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --surface-3: #f1f2f4;
 
-  --font-display: "Aptos Display", "Segoe UI", sans-serif;
-  --font-body: "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Cascadia Code", Consolas, monospace;
+  --ink: #18181b;
+  --ink-2: #3f3f46;
+  --muted: #71717a;
+  --faint: #a1a1aa;
 
-  --space-2xs: 0.25rem;
-  --space-xs: 0.5rem;
-  --space-sm: 0.75rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
-  --space-3xl: 5rem;
+  --line: #e6e7ea;
+  --line-strong: #d6d7db;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.75rem;
-  --text-display: clamp(2.75rem, 7vw, 6.5rem);
+  --ok: #15803d;
+  --ok-bg: #f0fdf4;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --err: #b91c1c;
+  --err-bg: #fef2f2;
+  --info-bg: #f4f4f5;
 
-  --radius-control: 999px;
-  --radius-panel: 12px;
-  --rule-thin: 1px;
-  --dur-micro: 100ms;
-  --dur-short: 180ms;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Code", ui-monospace, Consolas, monospace;
+
+  --sidebar-w: 236px;
+  --topbar-h: 58px;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / 0.05);
+  --shadow: 0 1px 2px rgb(24 24 27 / 0.06), 0 10px 26px -14px rgb(24 24 27 / 0.18);
 }
