@@ -75,15 +75,24 @@ picker({
 
 > ⚠️ 写文件只是“放在那里”，**不会自动进入任何对话**。必须有一个读取方去拉。
 
-## 让 Agent 读到它（关键）
+## 交给 Claude Code / Codex：用「复制」
 
-文件桥是被动的。要在对话里看到选取内容，需要 agent 侧主动读。两种方式：
+选中元素后点面板上的**复制**，切到 agent 粘贴即可。这是 claude / codex 的**推荐路径**，不是退而求其次：
 
-**1. 手动（零配置，任何 agent 都行）**——在对话里直接说：
+**复制**：`Alt`+点击 → 写要求 → 复制 → 切窗口 → `Ctrl+V` → `Enter`
+**钩子**：`Alt`+点击 → 写要求 → 选「发送给」→ 切窗口 → 打字 → `Enter`
+
+步数一样。钩子省下的只是一次粘贴，代价是配置 + 信任 + 版本脆弱性；而粘贴的好处是你**确切看得见送出去的是什么**。只有 Pi 是例外——它能做到真正的即时推送。
+
+## 让 Agent 自动读到它（可选）
+
+文件桥是被动的：选取会写进 `.picker/`，但需要 agent 侧主动读。除了复制，还有三种方式。
+
+**方式一：在对话里直接说（零配置，任何 agent）**
 
 > 读一下 `.picker/inbox/pi.md`（或 `.picker/last-pick.md`），按里面的修改要求改代码。
 
-**2. 自动注入（推荐）**——给 agent 装一个钩子，在提交提示时自动读入。包自带 `picker-hook`，任何有 prompt 钩子的 agent 都能用：
+**方式二：`picker-hook` 钩子**——适合作业流已经固定、你本来就要在 agent 里打字的场景：
 
 ```bash
 picker-hook --agent claude              # 输出纯文本，Claude Code 会加入上下文
@@ -93,9 +102,13 @@ picker-hook --agent codex --format codex  # 或者用显式的 hookSpecificOutpu
 
 它保证 **永远以 0 退出**（非 0 会直接拒绝用户在 Claude Code / Codex 里的提示），没有新内容时**什么都不输出**，同一条选取每个 agent 只投递一次。每个 agent 有独立游标，路由给 `codex` 不会消耗掉 `claude` 的那份。
 
-**完整配置（Claude Code / Codex / Pi / MCP，含 Codex 的钩子信任步骤）见 [docs/agents.md](./docs/agents.md)。**
+⚠️ **先读这一段再决定要不要装**：钩子只能在生命周期事件上触发，Claude Code / Codex **都没有从外部唤醒一个正在运行的会话的机制**。所以“推送”在这里的实际含义是**排队，等它下次开口**——你还是得在 agent 里发一条消息。只有 Pi 能不等你打字就注入。配置步骤（含 Codex 的钩子信任）见 [docs/agents.md](./docs/agents.md)。
 
-Pi 另外内置了一个扩展 `.pi/extensions/picker-inbox.ts`，支持真正的推送：
+**方式三：MCP**——见下面的 MCP Server 一节。
+
+## Pi：真正的即时推送
+
+Pi 内置了 `.pi/extensions/picker-inbox.ts`，轮询 `push.json`，不等你打字就注入：
 
 | 方式 | 触发 | 行为 |
 |---|---|---|
@@ -103,8 +116,6 @@ Pi 另外内置了一个扩展 `.pi/extensions/picker-inbox.ts`，支持真正�
 | 推送 | 浏览器点“推送” / 按 `Enter`，或 Pi 按 `ctrl+alt+p` / 输入 `/picker` | 立即注入当前选取 |
 
 Pi 监听 `before_agent_start`，装好后用 `/reload`（或重启 Pi）加载。
-
-> 区别在于：Pi 是**真推送**（轮询 `push.json`，不等你打字就注入）；钩子型 agent 只能在生命周期事件上注入，所以推送的选取会在你**下一次提交提示时**到达。
 
 ## 多 agent 路由
 

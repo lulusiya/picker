@@ -91,17 +91,29 @@ this repo).
 > ⚠️ Writing a file does nothing on its own — **it does not enter any chat**. A
 > reader has to pull it.
 
-## Making an agent read it
+## Claude Code / Codex: use Copy
 
-The file bridge is passive, so the agent side has to read it. There are two ways:
+Pick an element, press **Copy** in the panel, switch to the agent and paste. That
+is the recommended path for claude / codex, not a consolation prize:
 
-**1. Manual (zero setup, any agent)** — just say in the chat:
+**Copy**: `Alt`+click → write the request → Copy → switch window → `Ctrl+V` → `Enter`
+**Hook**: `Alt`+click → write the request → pick "Send to" → switch window → type something → `Enter`
+
+Same number of steps. The hook only saves the paste, and costs configuration,
+trust prompts and version fragility — while pasting means you can see exactly
+what you are sending. Pi is the exception: it can genuinely push.
+
+## Making an agent read it automatically (optional)
+
+The file bridge is passive: picks land in `.picker/`, but the agent side has to
+read them. Besides Copy there are three ways.
+
+**Option 1: say it in the chat (zero setup, any agent)**
 
 > Read `.picker/inbox/pi.md` (or `.picker/last-pick.md`) and make the change it asks for.
 
-**2. Automatic injection (recommended)** — install a hook that reads it when you
-submit a prompt. The package ships `picker-hook`, which works with any agent that
-has a prompt hook:
+**Option 2: the `picker-hook` command** — for when your workflow is fixed and you
+are going to type in the agent anyway:
 
 ```bash
 picker-hook --agent claude                # plain text; Claude Code adds it to the context
@@ -114,11 +126,18 @@ block it in Codex), prints **nothing** when there is nothing new, and delivers a
 given pick once per agent. Each agent keeps its own cursor, so routing a pick to
 `codex` does not consume it for `claude`.
 
-**Full setup for Claude Code, Codex, Pi and MCP — including Codex's hook-trust
-step — is in [docs/agents.md](./docs/agents.md).**
+⚠️ **Read this before wiring it up.** Hooks only fire on lifecycle events, and
+neither Claude Code nor Codex can wake a running session from the outside. So
+"push" here really means **queued until it next speaks** — you still have to send
+the agent a message. Only Pi injects without you typing. Setup, including Codex's
+hook-trust step, is in [docs/agents.md](./docs/agents.md).
 
-Pi also ships a bundled extension, `.pi/extensions/picker-inbox.ts`, which
-supports real push:
+**Option 3: MCP** — see the MCP server section below.
+
+## Pi: genuine immediate push
+
+Pi ships `.pi/extensions/picker-inbox.ts`, which polls `push.json` and injects
+without waiting for you to type:
 
 | Mode | Trigger | Behaviour |
 |---|---|---|

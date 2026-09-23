@@ -1,5 +1,31 @@
 # Wiring picks into an agent
 
+## Read this first
+
+**For Claude Code and Codex, prefer Copy.** Press **Copy** in the pick panel and
+paste into the agent. Both flows take the same number of steps:
+
+| | Copy | Hook |
+|---|---|---|
+| Browser | `Alt`+click, write the request, Copy | `Alt`+click, write the request, pick "Send to" |
+| Agent | switch window, `Ctrl+V`, `Enter` | switch window, type something, `Enter` |
+| Setup | none | config file, plus a trust prompt in Codex |
+
+The hook saves you a paste. Copy shows you exactly what you are sending, needs no
+setup, works with any agent, and cannot break when a host changes its hook format.
+
+**Neither Claude Code nor Codex can wake a running session from the outside.**
+Hooks fire on lifecycle events (`UserPromptSubmit`, tool calls), so a pick is
+queued until the agent next speaks — you still have to send it a message. Only Pi
+can inject without you typing (see [Pi](#pi) below).
+
+Reach for `picker-hook` when your workflow is fixed and you are going to type in
+the agent anyway, so the pick context rides along with what you were already
+going to say. It is also the right tool if you want a pick to arrive without
+living in your clipboard.
+
+## How delivery works
+
 The file bridge is **passive**: writing `.picker/inbox/<agent>.md` puts a pick on
 disk, but nothing reads it until an agent asks. `picker-hook` is that reader — a
 small CLI meant to be called from an agent's prompt hook.
@@ -49,6 +75,9 @@ for `claude`.
 
 Add a hook group. Existing groups are independent, so append one rather than
 editing what is already in the file.
+
+> Remember: this only saves the paste. If you would rather paste, skip this
+> section entirely.
 
 `.claude/settings.json` (project) or `~/.claude/settings.json` (all projects):
 
