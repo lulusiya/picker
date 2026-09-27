@@ -8,7 +8,12 @@ import { hasPushListener, readListeners } from './listeners'
 import { instrumentJsx, instrumentVueSfc, type SourceRecord } from './transform'
 
 export interface PickerOptions {
-  /** Files to transform. Defaults to JSX, TSX and Vue SFC files. */
+  /**
+   * Files to transform. Defaults to `.js`, `.jsx`, `.tsx` and Vue SFCs. Plain
+   * `.js` is included because React projects often keep JSX there; `.ts` is not,
+   * because TypeScript forbids JSX in a `.ts` file and an angle-bracket type
+   * assertion (`<Foo>bar`) is not parseable as JSX.
+   */
   include?: RegExp
   /**
    * Directory, relative to the Vite root, where picked elements are written for
@@ -142,7 +147,7 @@ function mountStateBridge(
 
 export default function picker(options: PickerOptions = {}): Plugin {
   const records = new Map<string, SourceRecord>()
-  const include = options.include ?? /\.(?:[jt]sx|vue)$/
+  const include = options.include ?? /\.(?:js|jsx|tsx|vue)$/
   const script = createClientScript(options)
   const stateDirName = options.stateDir === false ? null : options.stateDir ?? '.picker'
 

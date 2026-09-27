@@ -163,6 +163,21 @@ describe('Vite plugin HTML injection', () => {
     }
   })
 
+  // React projects often keep JSX in a plain `.js` file, so the default include
+  // has to cover it. `.ts` is excluded on purpose: TypeScript forbids JSX there,
+  // and an angle-bracket assertion (`<Foo>bar`) is not parseable as JSX, so
+  // including it could only ever waste a parse.
+  it('instruments JSX in .js files and leaves .ts alone', () => {
+    const plugin = picker({ stateDir: false })
+    const transform = plugin.transform as unknown as (code: string, id: string) => { code: string } | null
+    const jsx = 'export function Card() {\n  return <div className="card">Hi</div>\n}\n'
+
+    expect(transform.call(plugin, jsx, path.join('/app', 'src', 'Card.js'))?.code).toContain('<div data-picker="')
+    expect(transform.call(plugin, jsx, path.join('/app', 'src', 'Card.ts'))).toBeNull()
+    // Nothing to stamp: the parser is skipped and no empty transform is returned.
+    expect(transform.call(plugin, 'export const answer = 42\n', path.join('/app', 'src', 'util.js'))).toBeNull()
+  })
+
   it('evicts stale source records when a file is edited', async () => {
     const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'picker-hmr-'))
     const plugin = picker({ stateDir: false })
