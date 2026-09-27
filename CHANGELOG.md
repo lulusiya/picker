@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- JSX instrumentation no longer stamps component tags. `<Card>` and `<Foo.Bar>`
+  used to receive a `data-picker` *prop* that the component usually dropped, and
+  `<Fragment data-picker>` is a React warning; only native (lowercase) tags are
+  stamped now, mirroring the `tagType === 0` rule the Vue instrumenter already
+  applied.
+- A React component name now resolves to the nearest *capitalised* definition, so
+  a helper that returns JSX (`const renderRow = () => <tr/>` inside `App`) no
+  longer replaces the component it lives in. Named function expressions are
+  recognised too, which is what `React.memo`, `forwardRef` and HOC wrappers use.
+- An anonymous component (`export default () => <div/>`) now falls back to the
+  filename instead of producing no component name at all, matching how a Vue SFC
+  is named.
+
+### Added
+
+- Plain `.js` files are instrumented by default, because React projects often
+  keep JSX there. `.ts` stays out: TypeScript forbids JSX in a `.ts` file, and an
+  angle-bracket type assertion (`<Foo>bar`) cannot be parsed as JSX.
+- `demo-react/` — the Vue demo ported to React 19, so both frameworks are
+  covered by a runnable example.
+
 ## [0.5.0] - 2026-09-24
 
 ### Added

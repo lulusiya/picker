@@ -43,14 +43,18 @@ export default defineConfig({
 })
 ```
 
-插件仅在 Vite dev server 中运行，不会进入生产构建。默认支持 Vue 3 `.vue` SFC、`.jsx` 和 `.tsx`。
+插件仅在 Vite dev server 中运行，不会进入生产构建。默认支持 Vue 3 `.vue` SFC 以及 `.js` / `.jsx` / `.tsx`。
 
 ```ts
 picker({
-  include: /\.(?:vue|[jt]sx)$/,
+  include: /\.(?:js|jsx|tsx|vue)$/,
   stateDir: '.picker', // 落盘目录；false 关闭；默认 '.picker'
 })
 ```
+
+> React 项目常把 JSX 写在普通 `.js` 里，所以 `.js` 也在默认范围内。`.ts` 不在：TypeScript 不允许 `.ts` 里出现 JSX，而尖括号类型断言 `<Foo>bar` 无法按 JSX 解析。
+>
+> 只给**原生（小写）标签**注入定位属性：`<div>` 会注入，`<Card>` 和 `<Foo.Bar>` 不会。给组件加 `data-picker` 只会变成一个通常被组件丢弃的 prop，`<Fragment data-picker>` 还会触发 React 警告。React 侧的组件名取自最近的大写驼峰定义（`const Card = () => …`、`React.memo`、`forwardRef`、class 组件等）；匿名默认导出回退到文件名，与 Vue 用文件名兜底一致。
 
 ## 操作
 
@@ -187,7 +191,7 @@ npm i -D @modelcontextprotocol/sdk zod
 - 同一页面中的普通 DOM
 - 本地 Vite 开发服务器
 
-iframe 和 closed Shadow DOM 暂未支持。Vue 动态组件自身不会被注入属性，但其渲染出的原生 DOM 可以通过组件模板定位。
+iframe 和 closed Shadow DOM 暂未支持。Vue 动态组件自身不会被注入属性，但其渲染出的原生 DOM 可以通过组件模板定位。React 侧同理：组件标签不被注入，组件名由包住该原生元素的组件提供。
 
 ## 安全性
 

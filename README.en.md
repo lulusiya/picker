@@ -47,14 +47,25 @@ export default defineConfig({
 ```
 
 The plugin only runs in the Vite dev server and never enters a production build.
-It supports Vue 3 `.vue` SFCs, `.jsx` and `.tsx` by default.
+It supports Vue 3 `.vue` SFCs plus `.js`, `.jsx` and `.tsx` by default.
 
 ```ts
 picker({
-  include: /\.(?:vue|[jt]sx)$/,
+  include: /\.(?:js|jsx|tsx|vue)$/,
   stateDir: '.picker', // where picks are written; false disables; default '.picker'
 })
 ```
+
+> React projects often keep JSX in a plain `.js` file, so `.js` is in the default
+> set. `.ts` is not: TypeScript forbids JSX in a `.ts` file, and an angle-bracket
+> type assertion (`<Foo>bar`) is not parseable as JSX.
+>
+> Only **native (lowercase) tags** are stamped: `<div>` is, `<Card>` and
+> `<Foo.Bar>` are not. Giving a component `data-picker` would just add a prop it
+> usually drops, and `<Fragment data-picker>` is a React warning. A React
+> component name comes from the nearest capitalised definition (`const Card =
+> () => …`, `React.memo`, `forwardRef`, class components); an anonymous default
+> export falls back to the filename, matching how a Vue SFC is named.
 
 ## How it works
 
@@ -248,7 +259,9 @@ optional peer dependencies — install them only if you use MCP.
 
 `iframe` and closed shadow DOM are not supported. A Vue dynamic component itself
 is not instrumented, but the native DOM it renders can still be located through
-the component template.
+the component template. The same holds for React: component tags are never
+stamped, and the component name is contributed by the component that owns the
+native element.
 
 > Note: the overlay UI text is currently Chinese only; internationalisation is on
 the roadmap.
