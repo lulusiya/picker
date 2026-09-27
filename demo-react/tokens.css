@@ -1,0 +1,37 @@
+:root {
+  /* Deliberately colourless: the picker highlight is the only saturated blue on
+   * screen, so it stays unmistakable in screenshots and screen recordings. */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --surface-3: #f1f2f4;
+
+  --ink: #18181b;
+  --ink-2: #3f3f46;
+  --muted: #71717a;
+  --faint: #a1a1aa;
+
+  --line: #e6e7ea;
+  --line-strong: #d6d7db;
+
+  --ok: #15803d;
+  --ok-bg: #f0fdf4;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --err: #b91c1c;
+  --err-bg: #fef2f2;
+  --info-bg: #f4f4f5;
+
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Code", ui-monospace, Consolas, monospace;
+
+  --sidebar-w: 236px;
+  --topbar-h: 58px;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / 0.05);
+  --shadow: 0 1px 2px rgb(24 24 27 / 0.06), 0 10px 26px -14px rgb(24 24 27 / 0.18);
+}
