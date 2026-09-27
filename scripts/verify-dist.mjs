@@ -28,6 +28,16 @@ async function verify(label, mod) {
   check(`${label}: jsx records`, tsx.records.size, 2)
   check(`${label}: jsx component`, [...tsx.records.values()][0].component, 'Card')
 
+  // Component tags must not be stamped, and an inner helper must not steal the
+  // component name from the component that contains it.
+  const nested = mod.instrumentJsx(
+    'export default function App() {\n  const renderRow = (x) => <tr><td>cell</td></tr>\n  return <Layout><span>text</span></Layout>\n}',
+    '/app/src/App.tsx',
+  )
+  check(`${label}: jsx component tag untouched`, nested.code.includes('<Layout>'), true)
+  check(`${label}: jsx host records`, nested.records.size, 3)
+  check(`${label}: jsx helper does not win`, [...nested.records.values()][0].component, 'App')
+
   check(`${label}: astro -> null`, mod.instrumentVueSfc('---\nconst a = 1\n---\n', 'P.astro'), null)
   check(`${label}: svelte -> null`, mod.instrumentJsx('<script>let n = 0</script>\n<b>{n}</b>', 'A.svelte'), null)
 

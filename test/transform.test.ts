@@ -18,6 +18,58 @@ describe('instrumentJsx', () => {
     expect(result).toBeNull()
   })
 
+  // A component tag would receive `data-picker` as a prop, which React drops or
+  // warns about (`<Fragment data-picker>`), so only lowercase host tags are
+  // stamped - the mirror of the `tagType === 0` rule in the Vue instrumenter.
+  it('stamps host elements only, never components', () => {
+    const source = 'export default function App() {\n  return <Layout><StatCard value={1} /><span>x</span></Layout>\n}'
+    const result = instrumentJsx(source, 'App.tsx')
+
+    expect(result?.code).toContain('<span data-picker="')
+    expect(result?.code).toContain('<Layout>')
+    expect(result?.code).toContain('<StatCard value={1} />')
+    expect(result?.code).not.toContain('<Layout data-picker')
+    expect(result?.code).not.toContain('<StatCard data-picker')
+    expect(result!.records.size).toBe(1)
+  })
+
+  it('ignores member-expression components', () => {
+    const result = instrumentJsx('const A = () => <UI.Card><div className="x" /></UI.Card>', 'A.tsx')
+    expect(result?.code).toContain('<UI.Card>')
+    expect(result?.code).toContain('<div data-picker="')
+    expect(result!.records.size).toBe(1)
+  })
+
+  // `renderRow` returns JSX but is not the component the user clicked inside.
+  it('prefers the enclosing component over an inner lowercase helper', () => {
+    const source = 'function App() {\n  const renderRow = (x) => <tr><td>row</td></tr>\n  return <table>{[1].map(renderRow)}</table>\n}'
+    const result = instrumentJsx(source, 'App.tsx')
+    expect([...result!.records.values()].map(record => record.component)).toEqual(['App', 'App', 'App'])
+  })
+
+  it('names the component for every common definition shape', () => {
+    const cases: Array<[string, string]> = [
+      ['function declaration', 'export default function Card() { return <div /> }'],
+      ['arrow in a const', 'const Card = () => <div />'],
+      ['React.memo', 'const Card = React.memo(function Card() { return <div /> })'],
+      ['React.forwardRef', 'const Card = React.forwardRef((props, ref) => <div />)'],
+      ['class component', 'class Card extends React.Component { render() { return <div /> } }'],
+      ['named function expression in a HOC', 'export default connect()(function Card() { return <div /> })'],
+    ]
+
+    for (const [label, source] of cases) {
+      const result = instrumentJsx(source, 'C:\app\src\Whatever.tsx')
+      expect([...result!.records.values()][0].component, label).toBe('Card')
+    }
+  })
+
+  // Nothing to walk up to, so the file answers for the component - the same
+  // fallback a Vue SFC gets from its own filename.
+  it('falls back to the filename for an anonymous component', () => {
+    const result = instrumentJsx('export default () => <div className="x" />', 'C:\\app\\src\\StatCard.tsx')
+    expect([...result!.records.values()][0].component).toBe('StatCard')
+  })
+
   // The declared return type is `TransformResult | null`, so an unparseable
   // source has to come back as null rather than as a thrown syntax error.
   it('returns null instead of throwing on sources that are not JSX', () => {

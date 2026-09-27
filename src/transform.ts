@@ -61,20 +61,59 @@ export interface TransformResult {
   records: Map<string, SourceRecord>
 }
 
+/** React capitalises components, so this is what separates a component from a
+ * helper function that happens to return JSX. */
+const COMPONENT_NAME = /^[A-Z]/
+
+/**
+ * The nearest enclosing name that looks like a component.
+ *
+ * Walking stops at the first capitalised candidate, so an inner helper
+ * (`const renderRow = () => <tr/>` inside `App`) cannot be mistaken for the
+ * component that contains it. When nothing is capitalised the first name found
+ * still beats having none - a lowercase local at least points somewhere real.
+ */
 function componentName(path: string): string | undefined {
   let current: any = path
+  let fallback: string | undefined
   while (current) {
-    if (current.isFunctionDeclaration?.() && current.node.id?.name) return current.node.id.name
-    if (current.isClassDeclaration?.() && current.node.id?.name) return current.node.id.name
-    if (current.isVariableDeclarator?.() && current.node.id?.type === 'Identifier') return current.node.id.name
+    const node = current.node
+    let name: string | undefined
+    if (current.isFunctionDeclaration?.() || current.isFunctionExpression?.()) name = node.id?.name
+    else if (current.isClassDeclaration?.() || current.isClassExpression?.()) name = node.id?.name
+    else if (current.isVariableDeclarator?.() && node.id?.type === 'Identifier') name = node.id.name
+    if (name) {
+      if (COMPONENT_NAME.test(name)) return name
+      fallback ??= name
+    }
     current = current.parentPath
   }
-  return undefined
+  return fallback
 }
+
+/**
+ * A JSX tag names a DOM element only when it starts lowercase: `<div>` is a host
+ * element, while `<Card>` and `<Foo.Bar>` are components. Injecting into a
+ * component would hand it a `data-picker` *prop* that it usually drops, and
+ * `<Fragment data-picker>` is a React warning, so only host tags are stamped -
+ * the same rule `instrumentVueSfc` applies with `tagType === 0`.
+ */
+function isHostElement(name: any): boolean {
+  return name?.type === 'JSXIdentifier' && /^[a-z]/.test(name.name)
+}
+
+/**
+ * Every JSX opening tag starts with `<` followed by `>`, an identifier start, or
+ * a name character, so this cannot hide real JSX - it only lets plain modules
+ * skip the parser entirely. `a<b` slips through as a false positive, which costs
+ * one parse and nothing else.
+ */
+const MAY_CONTAIN_JSX = /<[A-Za-z_$>]/
 
 /** Adds source locators to native elements in JSX/TSX. Returns null when the
  * source is not parseable as JSX, so callers never see a syntax error. */
 export function instrumentJsx(code: string, file: string): TransformResult | null {
+  if (!MAY_CONTAIN_JSX.test(code)) return null
   let ast: ReturnType<typeof parse>
   try {
     ast = parse(code, {
@@ -89,11 +128,14 @@ export function instrumentJsx(code: string, file: string): TransformResult | nul
   const magic = new MagicString(code)
   const records = new Map<string, SourceRecord>()
   const fileHash = createHash('sha1').update(file).digest('hex').slice(0, 8)
+  // An anonymous default export has no name to walk up to, so the file itself is
+  // the last resort - the same fallback a Vue SFC gets from its filename.
+  const fileComponent = baseName(file).replace(/\.[cm]?[jt]sx?$/i, '') || undefined
 
   traverse(ast, {
     JSXOpeningElement(path: any) {
       const node = path.node
-      if (!node.loc || node.name.type === 'JSXNamespacedName') return
+      if (!node.loc || !isHostElement(node.name)) return
       const hasLocator = node.attributes.some(
         (attribute: any) => attribute.type === 'JSXAttribute' && attribute.name?.name === 'data-picker',
       )
@@ -116,7 +158,7 @@ export function instrumentJsx(code: string, file: string): TransformResult | nul
           start: { line, column },
           end: { line: end.line, column: end.column + 1 },
         },
-        component: componentName(path),
+        component: componentName(path) ?? fileComponent,
       })
     },
   })
